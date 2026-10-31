@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
 
+  experimental: {
+    // /api/* is forwarded to FastAPI; Next cuts that off at 30 s by default, but a new
+    // game plan can take up to ~2 min while the Gemini API is overloaded.
+    proxyTimeout: 180_000,
+  },
+
   allowedDevOrigins: [
     "172.20.10.*",
     "172.20.10.4",
