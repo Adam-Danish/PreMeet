@@ -1,441 +1,801 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
+
+type Founder = {
+  name: string;
+  company: string;
+  sector: string;
+  stage: string;
+  target_countries: string[];
+  wants: string[];
+  needs: string;
+};
 
 type Profile = {
+  id: string;
   name: string;
-  interests: string[];
-  goals: string[];
+  org: string;
+  country: string;
+  type: string;
+  sector: string;
+  looking_for: string;
 };
 
-type Attendee = Profile & {
+type PlanEntry = {
   id: string;
-  role: string;
+  rank: number;
+  why: string;
+  opener: string;
 };
 
-type MeetingRequest = {
-  id: string;
-  recipient: Attendee;
-  status: "pending";
+type Stage = "none" | "meeting" | "pilot" | "deal";
+type Outcomes = Record<string, Stage>;
+type View = "plan" | "log" | "dashboard";
+
+const COUNTRIES = [
+  "Indonesia",
+  "Thailand",
+  "Vietnam",
+  "Singapore",
+  "Philippines",
+  "Malaysia",
+];
+
+const TYPES = ["startup", "investor", "corporate", "government"];
+const SECTORS = ["agriculture", "fintech", "healthtech", "logistics"];
+const STAGES: Stage[] = ["none", "meeting", "pilot", "deal"];
+
+const STAGE_LABELS: Record<Stage, string> = {
+  none: "No outcome",
+  meeting: "Meeting",
+  pilot: "Pilot",
+  deal: "Deal",
 };
 
-const attendees: Attendee[] = [
+const DEFAULT_FOUNDER: Founder = {
+  name: "Aina",
+  company: "TaniLab (sample)",
+  sector: "agriculture",
+  stage: "seed",
+  target_countries: ["Indonesia", "Thailand"],
+  wants: ["corporate", "investor"],
+  needs: "Plantation pilots and seed funding",
+};
+
+// Frontend preview data. Replace with the backend's event profiles later.
+const PROFILES: Profile[] = [
   {
-    id: "1",
-    name: "Aisha Rahman",
-    role: "AI Developer",
-    interests: ["AI", "Python", "Startups"],
-    goals: ["Find collaborators", "Build a product"],
+    id: "p01",
+    name: "Budi",
+    org: "Sawit Agro (sample)",
+    country: "Indonesia",
+    type: "corporate",
+    sector: "agriculture",
+    looking_for: "farm-tech pilots on plantations",
   },
   {
-    id: "2",
-    name: "Daniel Lim",
-    role: "Frontend Developer",
-    interests: ["React", "Design", "Web development"],
-    goals: ["Learn", "Find collaborators"],
+    id: "p02",
+    name: "Mali",
+    org: "Green Fields (sample)",
+    country: "Thailand",
+    type: "corporate",
+    sector: "agriculture",
+    looking_for: "crop monitoring and plantation pilots",
   },
   {
-    id: "3",
-    name: "Sarah Tan",
-    role: "Product Designer",
-    interests: ["Design", "Startups", "Accessibility"],
-    goals: ["Build a product", "Meet founders"],
+    id: "p03",
+    name: "Rizky",
+    org: "Nusantara Ventures (sample)",
+    country: "Indonesia",
+    type: "investor",
+    sector: "agriculture",
+    looking_for: "seed-stage agriculture startups",
   },
   {
-    id: "4",
-    name: "Amir Hassan",
-    role: "Backend Developer",
-    interests: ["Python", "AI", "Cloud"],
-    goals: ["Find collaborators", "Learn"],
+    id: "p04",
+    name: "Nicha",
+    org: "Harvest Capital (sample)",
+    country: "Thailand",
+    type: "investor",
+    sector: "agriculture",
+    looking_for: "seed funding opportunities in farm technology",
   },
   {
-    id: "5",
-    name: "Priya Kumar",
-    role: "Startup Founder",
-    interests: ["Startups", "AI", "Business"],
-    goals: ["Meet founders", "Build a product"],
+    id: "p05",
+    name: "Sari",
+    org: "Plantation Partners (sample)",
+    country: "Indonesia",
+    type: "corporate",
+    sector: "agriculture",
+    looking_for: "startup partners for plantation pilots",
   },
   {
-    id: "6",
-    name: "Jason Wong",
-    role: "Full Stack Developer",
-    interests: ["React", "Python", "Web development"],
-    goals: ["Find collaborators", "Build a product"],
+    id: "p06",
+    name: "Arun",
+    org: "Agri Future (sample)",
+    country: "Thailand",
+    type: "government",
+    sector: "agriculture",
+    looking_for: "cross-border agriculture innovation",
   },
   {
-    id: "7",
-    name: "Nur Iman",
-    role: "Data Scientist",
-    interests: ["AI", "Data", "Python"],
-    goals: ["Learn", "Find collaborators"],
+    id: "p07",
+    name: "Mei",
+    org: "Seed Bridge (sample)",
+    country: "Singapore",
+    type: "investor",
+    sector: "agriculture",
+    looking_for: "regional seed-stage investments",
   },
   {
-    id: "8",
-    name: "Kevin Lee",
-    role: "Cloud Engineer",
-    interests: ["Cloud", "Security", "Web development"],
-    goals: ["Learn", "Meet founders"],
+    id: "p08",
+    name: "Farah",
+    org: "Farm Sensor (sample)",
+    country: "Malaysia",
+    type: "startup",
+    sector: "agriculture",
+    looking_for: "technology partners and pilot customers",
   },
   {
-    id: "9",
-    name: "Mei Chen",
-    role: "UX Researcher",
-    interests: ["Design", "Accessibility", "Business"],
-    goals: ["Find collaborators", "Learn"],
+    id: "p09",
+    name: "Linh",
+    org: "Route Works (sample)",
+    country: "Vietnam",
+    type: "corporate",
+    sector: "logistics",
+    looking_for: "delivery optimisation partners",
   },
   {
-    id: "10",
-    name: "Farah Aziz",
-    role: "Mobile Developer",
-    interests: ["AI", "Design", "Startups"],
-    goals: ["Build a product", "Learn"],
+    id: "p10",
+    name: "Daniel",
+    org: "Pay Forward (sample)",
+    country: "Singapore",
+    type: "investor",
+    sector: "fintech",
+    looking_for: "digital payment startups",
+  },
+  {
+    id: "p11",
+    name: "Isabel",
+    org: "Care Connect (sample)",
+    country: "Philippines",
+    type: "startup",
+    sector: "healthtech",
+    looking_for: "hospital partnerships",
+  },
+  {
+    id: "p12",
+    name: "Amir",
+    org: "Trade Enable (sample)",
+    country: "Malaysia",
+    type: "government",
+    sector: "logistics",
+    looking_for: "regional trade programmes",
   },
 ];
 
-function parseTags(value: string) {
-  return [...new Set(value.split(",").map((tag) => tag.trim()).filter(Boolean))];
+const PROFILE_BY_ID = Object.fromEntries(
+  PROFILES.map((profile) => [profile.id, profile]),
+);
+
+// Fictional event records from five other founders.
+const SAMPLE_STAGES: Stage[] = [
+  "none", "meeting", "none",
+  "pilot", "meeting", "none",
+  "deal", "meeting", "none",
+  "meeting", "pilot", "none",
+  "meeting", "none", "none",
+];
+
+const SAMPLE_EVENT_OUTCOMES = SAMPLE_STAGES.map((stage, index) => ({
+  founder: `sample-founder-${Math.floor(index / 3) + 1}`,
+  id: PROFILES[index % PROFILES.length].id,
+  stage,
+}));
+
+function storageKey(founder: Founder) {
+  const identity = JSON.stringify([
+    founder.name.trim().toLowerCase(),
+    founder.company.trim().toLowerCase(),
+  ]);
+
+  return `premeet:outcomes:v1:${identity}`;
 }
 
-function sharedTags(first: string[], second: string[]) {
-  const normalized = new Set(first.map((tag) => tag.toLowerCase()));
-  return second.filter((tag) => normalized.has(tag.toLowerCase()));
+function loadSavedOutcomes(founder: Founder): Outcomes {
+  try {
+    const raw: unknown = JSON.parse(
+      localStorage.getItem(storageKey(founder)) ?? "{}",
+    );
+
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+
+    return Object.fromEntries(
+      Object.entries(raw).filter(
+        ([id, stage]) =>
+          PROFILE_BY_ID[id] &&
+          typeof stage === "string" &&
+          STAGES.includes(stage as Stage),
+      ),
+    ) as Outcomes;
+  } catch {
+    return {};
+  }
 }
 
-function initials(name: string) {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("");
+// Preview only. The backend will prefilter 20 candidates and ask Gemma
+// to return PlanEntry[] using these same id/rank/why/opener fields.
+async function loadGamePlan(founder: Founder): Promise<PlanEntry[]> {
+  function score(profile: Profile) {
+    return (
+      (profile.sector === founder.sector ? 3 : 0) +
+      (founder.target_countries.includes(profile.country) ? 2 : 0) +
+      (founder.wants.includes(profile.type) ? 2 : 0)
+    );
+  }
+
+  return [...PROFILES]
+    .sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id))
+    .slice(0, 10)
+    .map((profile, index) => ({
+      id: profile.id,
+      rank: index + 1,
+      why:
+        `${profile.org} works in ${profile.sector} in ${profile.country}. ` +
+        `Their interest in ${profile.looking_for} is a conversation ` +
+        `to explore for ${founder.company}.`,
+      opener:
+        `We're building ${founder.company} in ${founder.sector}. ` +
+        `Could we discuss your work on ${profile.looking_for}?`,
+    }));
+}
+
+function funnel(stages: Stage[]) {
+  const reached = (minimum: Stage) =>
+    stages.filter(
+      (stage) => STAGES.indexOf(stage) >= STAGES.indexOf(minimum),
+    ).length;
+
+  return {
+    contacts: stages.length,
+    meetings: reached("meeting"),
+    pilots: reached("pilot"),
+    deals: reached("deal"),
+  };
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      {children}
+    </label>
+  );
 }
 
 export default function Home() {
-  const [tab, setTab] = useState<"discover" | "meetings">("discover");
-  const [name, setName] = useState("");
-  const [interests, setInterests] = useState("AI, Startups");
-  const [goals, setGoals] = useState("Find collaborators, Learn");
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [requests, setRequests] = useState<MeetingRequest[]>([]);
+  const [view, setView] = useState<View>("plan");
+  const [founder, setFounder] = useState<Founder>(DEFAULT_FOUNDER);
+  const [activeFounder, setActiveFounder] = useState<Founder | null>(null);
+  const [plan, setPlan] = useState<PlanEntry[]>([]);
+  const [outcomes, setOutcomes] = useState<Outcomes>({});
+  const [savedOutcomes, setSavedOutcomes] = useState<Outcomes>({});
+  const [includeSamples, setIncludeSamples] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
 
-  const matches = profile
-    ? attendees
-        .map((attendee) => {
-          const commonInterests = sharedTags(profile.interests, attendee.interests);
-          const commonGoals = sharedTags(profile.goals, attendee.goals);
+  const stats = funnel([
+    ...(includeSamples ? SAMPLE_EVENT_OUTCOMES.map((row) => row.stage) : []),
+    ...Object.values(savedOutcomes),
+  ]);
 
-          const interestScore =
-            commonInterests.length / Math.max(profile.interests.length, 1);
-          const goalScore =
-            commonGoals.length / Math.max(profile.goals.length, 1);
+  const metrics = [
+    { label: "Contacts", value: stats.contacts },
+    { label: "Meetings", value: stats.meetings },
+    { label: "Pilots", value: stats.pilots },
+    { label: "Deals", value: stats.deals },
+  ];
 
-          return {
-            attendee,
-            score: Math.round((interestScore * 0.6 + goalScore * 0.4) * 100),
-            reason: commonInterests.length
-              ? `You both enjoy ${commonInterests.join(", ")}. ${
-                  commonGoals.length
-                    ? `You also share the goal: ${commonGoals[0].toLowerCase()}.`
-                    : "Explore how your different goals could complement each other."
-                }`
-              : commonGoals.length
-                ? `You both want to ${commonGoals[0].toLowerCase()}.`
-                : "A chance to connect with someone outside your usual interests.",
-            starter: commonInterests.length
-              ? `What are you currently exploring in ${commonInterests[0]}?`
-              : `What inspired you to become a ${attendee.role.toLowerCase()}?`,
-          };
-        })
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10)
-    : [];
+  const hasUnsavedChanges =
+    JSON.stringify(outcomes) !== JSON.stringify(savedOutcomes);
 
-  function requestMeeting(attendee: Attendee) {
-    if (requests.some((request) => request.recipient.id === attendee.id)) return;
-
-    setRequests((current) => [
+  function toggleSelection(
+    field: "target_countries" | "wants",
+    value: string,
+  ) {
+    setFounder((current) => ({
       ...current,
-      {
-        id: crypto.randomUUID(),
-        recipient: attendee,
-        status: "pending",
-      },
-    ]);
-    setNotice(`Meeting request sent to ${attendee.name}.`);
+      [field]: current[field].includes(value)
+        ? current[field].filter((item) => item !== value)
+        : [...current[field], value],
+    }));
+  }
+
+  async function generatePlan(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+
+    const submitted: Founder = {
+      ...founder,
+      name: founder.name.trim(),
+      company: founder.company.trim(),
+      needs: founder.needs.trim(),
+    };
+
+    if (
+      !submitted.name ||
+      !submitted.company ||
+      !submitted.needs ||
+      !submitted.target_countries.length ||
+      !submitted.wants.length
+    ) {
+      setError("Complete your profile and select countries and people to meet.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await loadGamePlan(submitted);
+
+      if (!result.length) {
+        throw new Error("No recommendations returned.");
+      }
+
+      const saved = loadSavedOutcomes(submitted);
+
+      setActiveFounder(submitted);
+      setPlan(result);
+      setOutcomes(saved);
+      setSavedOutcomes(saved);
+      setNotice("Your sample game plan is ready.");
+    } catch {
+      setError("Couldn’t make a plan. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function updateOutcome(id: string, value: string) {
+    setOutcomes((current) => {
+      const next = { ...current };
+
+      if (value === "") {
+        delete next[id];
+      } else {
+        next[id] = value as Stage;
+      }
+
+      return next;
+    });
+    setNotice("");
+  }
+
+  function saveOutcomes() {
+    if (!activeFounder) return;
+
+    setSavedOutcomes({ ...outcomes });
+    setError("");
+
+    try {
+      localStorage.setItem(
+        storageKey(activeFounder),
+        JSON.stringify(outcomes),
+      );
+      setNotice("Outcomes saved in this browser. Your dashboard is updated.");
+    } catch {
+      setNotice(
+        "Dashboard updated for this session. Browser storage is unavailable.",
+      );
+    }
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-5">
-          <a href="/" className="flex items-center gap-3 text-xl font-bold">
-            <span className="rounded-xl bg-teal-700 px-3 py-2 text-sm text-white">
-              PM
-            </span>
-            PreMeet
+    <div className="app-shell">
+      <header className="site-header">
+        <div className="header-inner">
+          <a className="brand" href="/">
+            <span className="brand-mark">P</span>
+            <span>PreMeet</span>
           </a>
-
-          <nav aria-label="Main navigation" className="flex gap-2">
-            <button
-              onClick={() => setTab("discover")}
-              aria-pressed={tab === "discover"}
-              className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                tab === "discover"
-                  ? "bg-teal-50 text-teal-800"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              Discover
-            </button>
-            <button
-              onClick={() => setTab("meetings")}
-              aria-pressed={tab === "meetings"}
-              className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                tab === "meetings"
-                  ? "bg-teal-50 text-teal-800"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              Meetings ({requests.length})
-            </button>
-          </nav>
+          <span className="event-label">Hack Day KL · 31 Oct 2026</span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-10">
-        <div className="mb-10">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-teal-700">
-            Your next connection starts here
-          </p>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-            Meet the right people.
+      <main className="main">
+        <section className="hero">
+          <p className="eyebrow">Event Game Plan</p>
+          <h1>
+            Arrive with a plan.
             <br />
-            <span className="text-teal-700">Before the event.</span>
+            Leave with proof.
           </h1>
-          <p className="mt-4 max-w-xl leading-7 text-slate-600">
-            Discover attendees who share your interests, start a conversation,
-            and turn introductions into opportunities.
+          <p className="hero-description">
+            Find the right people before your event, then track the
+            conversations that become meetings, pilots and deals.
           </p>
-          <p className="mt-3 text-xs text-slate-500">
-            Interactive demo · Fictional attendees · Sample matching rules
-          </p>
-        </div>
+          <span className="preview-label">
+            Frontend preview · Fictional data · Gemma not connected
+          </span>
+        </section>
 
-        <p role="status" className="mb-4 min-h-6 text-sm text-teal-800">
-          {notice}
-        </p>
+        <nav className="view-nav" aria-label="App sections">
+          {([
+            ["plan", "01", "Game plan"],
+            ["log", "02", "After the event"],
+            ["dashboard", "03", "Event dashboard"],
+          ] as const).map(([id, number, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={view === id}
+              className={view === id ? "view-button active" : "view-button"}
+              onClick={() => setView(id)}
+            >
+              <span>{number}</span>
+              {label}
+            </button>
+          ))}
+        </nav>
 
-        {tab === "discover" ? (
-          <div className="grid items-start gap-8 lg:grid-cols-[320px_1fr]">
-            <aside className="rounded-2xl border border-slate-200 bg-white p-6">
-              <h2 className="text-xl font-semibold">Your profile</h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Tell us what you want to explore.
+        {error && <p className="error-message" role="alert">{error}</p>}
+        {notice && <p className="notice" role="status">{notice}</p>}
+
+        {view === "plan" && (
+          <div className="plan-layout">
+            <aside className="panel profile-panel">
+              <p className="eyebrow">Start here</p>
+              <h2>Your founder profile</h2>
+              <p className="muted">
+                Tell us what you build and what you need next.
               </p>
 
-              <form
-                className="mt-6 space-y-5"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (
-                    !name.trim() ||
-                    !parseTags(interests).length ||
-                    !parseTags(goals).length
-                  ) {
-                    setNotice("Please enter your name, interests, and goals.");
-                    return;
-                  }
-
-                  setProfile({
-                    name: name.trim(),
-                    interests: parseTags(interests),
-                    goals: parseTags(goals),
-                  });
-                  setNotice("Your matches are ready.");
-                }}
-              >
-                <label className="block text-sm font-medium">
-                  Your name
+              <form onSubmit={generatePlan} className="profile-form">
+                <Field label="Your name">
                   <input
                     required
                     maxLength={80}
                     autoComplete="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder="e.g. Adam Danish"
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"
+                    value={founder.name}
+                    onChange={(event) =>
+                      setFounder({ ...founder, name: event.target.value })
+                    }
                   />
-                </label>
+                </Field>
 
-                <label className="block text-sm font-medium">
-                  Interests
+                <Field label="Company">
                   <input
                     required
-                    maxLength={300}
-                    value={interests}
-                    onChange={(event) => setInterests(event.target.value)}
-                    placeholder="AI, React, Design"
-                    className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-3"
+                    maxLength={120}
+                    autoComplete="organization"
+                    value={founder.company}
+                    onChange={(event) =>
+                      setFounder({ ...founder, company: event.target.value })
+                    }
                   />
-                  <span className="mt-2 block text-xs font-normal text-slate-500">
-                    Separate interests with commas.
-                  </span>
-                </label>
+                </Field>
 
-                <label className="block text-sm font-medium">
-                  Networking goals
+                <div className="form-columns">
+                  <Field label="Sector">
+                    <select
+                      value={founder.sector}
+                      onChange={(event) =>
+                        setFounder({ ...founder, sector: event.target.value })
+                      }
+                    >
+                      {SECTORS.map((sector) => (
+                        <option key={sector} value={sector}>{sector}</option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Startup stage">
+                    <select
+                      value={founder.stage}
+                      onChange={(event) =>
+                        setFounder({ ...founder, stage: event.target.value })
+                      }
+                    >
+                      <option value="pre-seed">Pre-seed</option>
+                      <option value="seed">Seed</option>
+                      <option value="series-a">Series A</option>
+                      <option value="growth">Growth</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <fieldset>
+                  <legend>Target countries</legend>
+                  <div className="choices">
+                    {COUNTRIES.map((country) => (
+                      <label key={country} className="choice">
+                        <input
+                          type="checkbox"
+                          checked={founder.target_countries.includes(country)}
+                          onChange={() =>
+                            toggleSelection("target_countries", country)
+                          }
+                        />
+                        {country}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset>
+                  <legend>Who do you want to meet?</legend>
+                  <div className="choices">
+                    {TYPES.map((type) => (
+                      <label key={type} className="choice">
+                        <input
+                          type="checkbox"
+                          checked={founder.wants.includes(type)}
+                          onChange={() => toggleSelection("wants", type)}
+                        />
+                        {type}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <Field label="What do you need?">
                   <textarea
                     required
-                    maxLength={300}
                     rows={3}
-                    value={goals}
-                    onChange={(event) => setGoals(event.target.value)}
-                    placeholder="Find collaborators, Learn"
-                    className="mt-2 w-full resize-y rounded-xl border border-slate-300 px-3 py-3"
+                    maxLength={600}
+                    value={founder.needs}
+                    onChange={(event) =>
+                      setFounder({ ...founder, needs: event.target.value })
+                    }
                   />
-                  <span className="mt-2 block text-xs font-normal text-slate-500">
-                    Separate goals with commas.
-                  </span>
-                </label>
+                </Field>
 
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800"
-                >
-                  Find my matches →
+                <button className="primary-button" disabled={loading}>
+                  {loading ? "Making your plan…" : "Make my game plan →"}
                 </button>
               </form>
             </aside>
 
-            <section aria-labelledby="matches-heading">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <h2 id="matches-heading" className="text-2xl font-semibold">
-                  {profile ? `${profile.name}’s top matches` : "Your top matches"}
-                </h2>
-                <span className="shrink-0 text-sm text-slate-500">
-                  {matches.length} people
-                </span>
+            <section aria-labelledby="plan-heading">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Before the event</p>
+                  <h2 id="plan-heading">
+                    {activeFounder
+                      ? `${activeFounder.name}’s game plan`
+                      : "Your next ten conversations"}
+                  </h2>
+                </div>
+                <span className="badge">{plan.length} people</span>
               </div>
 
-              {!profile ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center">
-                  <h3 className="text-lg font-semibold">
-                    Great conversations start with a little context.
-                  </h3>
-                  <p className="mt-3 text-slate-500">
-                    Complete your profile to discover your matches.
+              {!plan.length ? (
+                <div className="empty-state">
+                  <span className="empty-number">10</span>
+                  <h3>Fewer random introductions.</h3>
+                  <p>
+                    Complete your founder profile to see who to meet,
+                    why they matter and how to start the conversation.
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-5 xl:grid-cols-2">
-                  {matches.map(({ attendee, score, reason, starter }) => {
-                    const requested = requests.some(
-                      (request) => request.recipient.id === attendee.id,
-                    );
+                <>
+                  <p className="section-note">
+                    Sample recommendations. Live Gemma ranking will replace
+                    this preview when the backend is connected.
+                  </p>
 
-                    return (
-                      <article
-                        key={attendee.id}
-                        className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-100 font-bold text-teal-800">
-                            {initials(attendee.name)}
+                  <div className="cards">
+                    {plan.map((item) => {
+                      const person = PROFILE_BY_ID[item.id];
+
+                      return (
+                        <article className="person-card" key={item.id}>
+                          <div className="person-heading">
+                            <span className="rank">{item.rank}</span>
+                            <div>
+                              <h3>{person.name}</h3>
+                              <p className="muted">{person.org}</p>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="font-semibold">{attendee.name}</h3>
-                            <p className="text-sm text-slate-500">
-                              {attendee.role}
-                            </p>
+
+                          <div className="tags">
+                            <span>{person.country}</span>
+                            <span>{person.type}</span>
+                            <span>{person.sector}</span>
                           </div>
-                          <span className="rounded-full bg-violet-50 px-2 py-1 text-xs font-semibold text-violet-700">
-                            {score}%
-                          </span>
-                        </div>
 
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {attendee.interests.map((interest) => (
-                            <span
-                              key={interest}
-                              className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600"
-                            >
-                              {interest}
-                            </span>
-                          ))}
-                        </div>
+                          <p className="card-label">Why meet</p>
+                          <p className="reason">{item.why}</p>
 
-                        <p className="mt-4 text-sm leading-6 text-slate-600">
-                          {reason}
-                        </p>
-
-                        <div className="my-5 rounded-xl bg-teal-50 p-3">
-                          <p className="text-xs font-semibold text-teal-800">
-                            BREAK THE ICE
-                          </p>
-                          <p className="mt-1 text-sm leading-6 text-teal-900">
-                            “{starter}”
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={() => requestMeeting(attendee)}
-                          disabled={requested}
-                          className="mt-auto w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-default disabled:bg-slate-100 disabled:text-slate-500"
-                        >
-                          {requested ? "Request sent ✓" : "Request meeting"}
-                        </button>
-                      </article>
-                    );
-                  })}
-                </div>
+                          <div className="opener">
+                            <p className="card-label">Start with this</p>
+                            <p>“{item.opener}”</p>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </section>
           </div>
-        ) : (
-          <section className="max-w-3xl" aria-labelledby="meetings-heading">
-            <h2 id="meetings-heading" className="mb-6 text-2xl font-semibold">
-              Your meeting requests
-            </h2>
+        )}
 
-            {requests.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-                <p className="text-slate-500">No meeting requests yet.</p>
+        {view === "log" && (
+          <section className="panel">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">After the event</p>
+                <h2>What came of the conversation?</h2>
+              </div>
+              {hasUnsavedChanges && (
+                <span className="badge">Unsaved changes</span>
+              )}
+            </div>
+
+            <p className="muted">
+              Record the furthest stage reached for each person.
+              Leave people you have not contacted as “Not logged”.
+            </p>
+
+            {!plan.length ? (
+              <div className="empty-state compact">
+                <h3>Your contacts will appear here.</h3>
+                <p>Generate a game plan first.</p>
                 <button
-                  onClick={() => setTab("discover")}
-                  className="mt-4 font-semibold text-teal-700"
+                  className="primary-button"
+                  onClick={() => setView("plan")}
                 >
-                  Discover people →
+                  Make a game plan →
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {requests.map((request) => (
-                  <article
-                    key={request.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6"
+              <>
+                <div className="outcome-list">
+                  {plan.map((item) => {
+                    const person = PROFILE_BY_ID[item.id];
+
+                    return (
+                      <div className="outcome-row" key={person.id}>
+                        <div className="person-heading">
+                          <span className="rank">{item.rank}</span>
+                          <div>
+                            <h3>{person.name}</h3>
+                            <p className="muted">
+                              {person.org} · {person.country}
+                            </p>
+                          </div>
+                        </div>
+
+                        <label className="outcome-select">
+                          <span className="sr-only">
+                            Outcome for {person.name}
+                          </span>
+                          <select
+                            value={outcomes[person.id] ?? ""}
+                            onChange={(event) =>
+                              updateOutcome(person.id, event.target.value)
+                            }
+                          >
+                            <option value="">Not logged</option>
+                            {STAGES.map((stage) => (
+                              <option key={stage} value={stage}>
+                                {STAGE_LABELS[stage]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="save-row">
+                  <p className="muted">
+                    Saved on this browser for {activeFounder?.company}.
+                    Generate this founder’s plan again after refreshing
+                    to reload the saved log.
+                  </p>
+                  <button
+                    className="primary-button"
+                    onClick={saveOutcomes}
+                    disabled={!hasUnsavedChanges}
                   >
-                    <div>
-                      <h3 className="font-semibold">
-                        {request.recipient.name}
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {request.recipient.role}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-amber-50 px-3 py-1 text-sm text-amber-800">
-                      Awaiting response
-                    </span>
-                  </article>
-                ))}
-              </div>
+                    Save outcomes
+                  </button>
+                </div>
+              </>
             )}
+          </section>
+        )}
+
+        {view === "dashboard" && (
+          <section>
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">For Startup ASEAN</p>
+                <h2>Event outcomes, beyond attendance.</h2>
+              </div>
+              <span className="badge">Preview dashboard</span>
+            </div>
+
+            <div className="dashboard-controls">
+              <label className="choice">
+                <input
+                  type="checkbox"
+                  checked={includeSamples}
+                  onChange={(event) =>
+                    setIncludeSamples(event.target.checked)
+                  }
+                />
+                Include fictional event records
+              </label>
+              <p className="muted">
+                {includeSamples ? SAMPLE_EVENT_OUTCOMES.length : 0} sample
+                records + {Object.keys(savedOutcomes).length} saved founder
+                records
+              </p>
+            </div>
+
+            <div className="metrics">
+              {metrics.map((metric) => (
+                <article className="metric-card" key={metric.label}>
+                  <p>{metric.label}</p>
+                  <strong>{metric.value}</strong>
+                </article>
+              ))}
+            </div>
+
+            <figure className="panel funnel-chart">
+              <figcaption>
+                <h3>From first contact to business outcome</h3>
+                <p className="muted">
+                  A deal also counts as a pilot and a meeting.
+                  Only saved outcomes are included.
+                </p>
+              </figcaption>
+
+              {metrics.map((metric) => (
+                <div className="chart-row" key={metric.label}>
+                  <span>{metric.label}</span>
+                  <div className="chart-track" aria-hidden="true">
+                    <div
+                      className="chart-fill"
+                      style={{
+                        width: `${
+                          (metric.value / Math.max(stats.contacts, 1)) * 100
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  <strong>{metric.value}</strong>
+                </div>
+              ))}
+
+              {stats.contacts === 0 && (
+                <p className="section-note">
+                  No outcomes yet. Save a contact’s outcome or enable
+                  the sample records to preview the funnel.
+                </p>
+              )}
+            </figure>
           </section>
         )}
       </main>
 
-      <footer className="mx-auto max-w-7xl px-6 py-8 text-sm text-slate-500">
-        PreMeet · Make your first hello count.
+      <footer className="site-footer">
+        PreMeet / Event Game Plan
+        <span>Know who to meet. Track what happens next.</span>
       </footer>
     </div>
   );

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PreMeet — Find Your Next Connection",
-  description: "Connect with the right people before your next event.",
+  title: "PreMeet — Event Game Plan",
+  description:
+    "Know who to meet before an event. Track meetings, pilots and deals after.",
 };
 
 export default function RootLayout({
