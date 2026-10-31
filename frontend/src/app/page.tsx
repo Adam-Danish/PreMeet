@@ -4,27 +4,20 @@ import { useState, type FormEvent, type ReactNode } from "react";
 
 type Founder = {
   name: string;
-  company: string;
   sector: string;
-  stage: string;
   target_countries: string[];
   wants: string[];
   needs: string;
 };
 
-type Profile = {
+type PlanItem = {
   id: string;
+  rank: number;
   name: string;
   org: string;
   country: string;
   type: string;
-  sector: string;
-  looking_for: string;
-};
-
-type PlanEntry = {
-  id: string;
-  rank: number;
+  sector?: string;
   why: string;
   opener: string;
 };
@@ -32,6 +25,13 @@ type PlanEntry = {
 type Stage = "none" | "meeting" | "pilot" | "deal";
 type Outcomes = Record<string, Stage>;
 type View = "plan" | "log" | "dashboard";
+
+type Dashboard = {
+  contacts: number;
+  meetings: number;
+  pilots: number;
+  deals: number;
+};
 
 const COUNTRIES = [
   "Indonesia",
@@ -47,7 +47,7 @@ const SECTORS = ["agriculture", "fintech", "healthtech", "logistics"];
 const STAGES: Stage[] = ["none", "meeting", "pilot", "deal"];
 
 const STAGE_LABELS: Record<Stage, string> = {
-  none: "No outcome",
+  none: "None",
   meeting: "Meeting",
   pilot: "Pilot",
   deal: "Deal",
@@ -55,214 +55,80 @@ const STAGE_LABELS: Record<Stage, string> = {
 
 const DEFAULT_FOUNDER: Founder = {
   name: "Aina",
-  company: "TaniLab (sample)",
   sector: "agriculture",
-  stage: "seed",
   target_countries: ["Indonesia", "Thailand"],
   wants: ["corporate", "investor"],
   needs: "Plantation pilots and seed funding",
 };
 
-// Frontend preview data. Replace with the backend's event profiles later.
-const PROFILES: Profile[] = [
-  {
-    id: "p01",
-    name: "Budi",
-    org: "Sawit Agro (sample)",
-    country: "Indonesia",
-    type: "corporate",
-    sector: "agriculture",
-    looking_for: "farm-tech pilots on plantations",
-  },
-  {
-    id: "p02",
-    name: "Mali",
-    org: "Green Fields (sample)",
-    country: "Thailand",
-    type: "corporate",
-    sector: "agriculture",
-    looking_for: "crop monitoring and plantation pilots",
-  },
-  {
-    id: "p03",
-    name: "Rizky",
-    org: "Nusantara Ventures (sample)",
-    country: "Indonesia",
-    type: "investor",
-    sector: "agriculture",
-    looking_for: "seed-stage agriculture startups",
-  },
-  {
-    id: "p04",
-    name: "Nicha",
-    org: "Harvest Capital (sample)",
-    country: "Thailand",
-    type: "investor",
-    sector: "agriculture",
-    looking_for: "seed funding opportunities in farm technology",
-  },
-  {
-    id: "p05",
-    name: "Sari",
-    org: "Plantation Partners (sample)",
-    country: "Indonesia",
-    type: "corporate",
-    sector: "agriculture",
-    looking_for: "startup partners for plantation pilots",
-  },
-  {
-    id: "p06",
-    name: "Arun",
-    org: "Agri Future (sample)",
-    country: "Thailand",
-    type: "government",
-    sector: "agriculture",
-    looking_for: "cross-border agriculture innovation",
-  },
-  {
-    id: "p07",
-    name: "Mei",
-    org: "Seed Bridge (sample)",
-    country: "Singapore",
-    type: "investor",
-    sector: "agriculture",
-    looking_for: "regional seed-stage investments",
-  },
-  {
-    id: "p08",
-    name: "Farah",
-    org: "Farm Sensor (sample)",
-    country: "Malaysia",
-    type: "startup",
-    sector: "agriculture",
-    looking_for: "technology partners and pilot customers",
-  },
-  {
-    id: "p09",
-    name: "Linh",
-    org: "Route Works (sample)",
-    country: "Vietnam",
-    type: "corporate",
-    sector: "logistics",
-    looking_for: "delivery optimisation partners",
-  },
-  {
-    id: "p10",
-    name: "Daniel",
-    org: "Pay Forward (sample)",
-    country: "Singapore",
-    type: "investor",
-    sector: "fintech",
-    looking_for: "digital payment startups",
-  },
-  {
-    id: "p11",
-    name: "Isabel",
-    org: "Care Connect (sample)",
-    country: "Philippines",
-    type: "startup",
-    sector: "healthtech",
-    looking_for: "hospital partnerships",
-  },
-  {
-    id: "p12",
-    name: "Amir",
-    org: "Trade Enable (sample)",
-    country: "Malaysia",
-    type: "government",
-    sector: "logistics",
-    looking_for: "regional trade programmes",
-  },
-];
-
-const PROFILE_BY_ID = Object.fromEntries(
-  PROFILES.map((profile) => [profile.id, profile]),
-);
-
-// Fictional event records from five other founders.
-const SAMPLE_STAGES: Stage[] = [
-  "none", "meeting", "none",
-  "pilot", "meeting", "none",
-  "deal", "meeting", "none",
-  "meeting", "pilot", "none",
-  "meeting", "none", "none",
-];
-
-const SAMPLE_EVENT_OUTCOMES = SAMPLE_STAGES.map((stage, index) => ({
-  founder: `sample-founder-${Math.floor(index / 3) + 1}`,
-  id: PROFILES[index % PROFILES.length].id,
-  stage,
-}));
-
-function storageKey(founder: Founder) {
-  const identity = JSON.stringify([
-    founder.name.trim().toLowerCase(),
-    founder.company.trim().toLowerCase(),
-  ]);
-
-  return `premeet:outcomes:v1:${identity}`;
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function loadSavedOutcomes(founder: Founder): Outcomes {
-  try {
-    const raw: unknown = JSON.parse(
-      localStorage.getItem(storageKey(founder)) ?? "{}",
-    );
-
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-
-    return Object.fromEntries(
-      Object.entries(raw).filter(
-        ([id, stage]) =>
-          PROFILE_BY_ID[id] &&
-          typeof stage === "string" &&
-          STAGES.includes(stage as Stage),
-      ),
-    ) as Outcomes;
-  } catch {
-    return {};
-  }
+function isStage(value: unknown): value is Stage {
+  return typeof value === "string" && STAGES.includes(value as Stage);
 }
 
-// Preview only. The backend will prefilter 20 candidates and ask Gemma
-// to return PlanEntry[] using these same id/rank/why/opener fields.
-async function loadGamePlan(founder: Founder): Promise<PlanEntry[]> {
-  function score(profile: Profile) {
+function isPlanItem(value: unknown): value is PlanItem {
+  if (!isObject(value)) return false;
+
+  const textFields = [
+    "id",
+    "name",
+    "org",
+    "country",
+    "type",
+    "why",
+    "opener",
+  ];
+
+  return (
+    textFields.every((field) => typeof value[field] === "string") &&
+    typeof value.id === "string" &&
+    value.id.length > 0 &&
+    typeof value.rank === "number" &&
+    Number.isInteger(value.rank) &&
+    value.rank > 0 &&
+    (value.sector === undefined || typeof value.sector === "string")
+  );
+}
+
+function isDashboard(value: unknown): value is Dashboard {
+  if (!isObject(value)) return false;
+
+  return ["contacts", "meetings", "pilots", "deals"].every((key) => {
+    const count = value[key];
     return (
-      (profile.sector === founder.sector ? 3 : 0) +
-      (founder.target_countries.includes(profile.country) ? 2 : 0) +
-      (founder.wants.includes(profile.type) ? 2 : 0)
+      typeof count === "number" &&
+      Number.isInteger(count) &&
+      count >= 0
     );
-  }
-
-  return [...PROFILES]
-    .sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id))
-    .slice(0, 10)
-    .map((profile, index) => ({
-      id: profile.id,
-      rank: index + 1,
-      why:
-        `${profile.org} works in ${profile.sector} in ${profile.country}. ` +
-        `Their interest in ${profile.looking_for} is a conversation ` +
-        `to explore for ${founder.company}.`,
-      opener:
-        `We're building ${founder.company} in ${founder.sector}. ` +
-        `Could we discuss your work on ${profile.looking_for}?`,
-    }));
+  });
 }
 
-function funnel(stages: Stage[]) {
-  const reached = (minimum: Stage) =>
-    stages.filter(
-      (stage) => STAGES.indexOf(stage) >= STAGES.indexOf(minimum),
-    ).length;
+async function api(
+  path: string,
+  method: "GET" | "POST" = "GET",
+  body?: unknown,
+): Promise<unknown> {
+  const response = await fetch(path, {
+    method,
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      ...(body !== undefined
+        ? { "Content-Type": "application/json" }
+        : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    signal: AbortSignal.timeout(90_000),
+  });
 
-  return {
-    contacts: stages.length,
-    meetings: reached("meeting"),
-    pilots: reached("pilot"),
-    deals: reached("deal"),
-  };
+  if (!response.ok) {
+    throw new Error(`Request failed: ${response.status}`);
+  }
+
+  return response.json();
 }
 
 function Field({
@@ -283,29 +149,31 @@ function Field({
 export default function Home() {
   const [view, setView] = useState<View>("plan");
   const [founder, setFounder] = useState<Founder>(DEFAULT_FOUNDER);
-  const [activeFounder, setActiveFounder] = useState<Founder | null>(null);
-  const [plan, setPlan] = useState<PlanEntry[]>([]);
+  const [planOwner, setPlanOwner] = useState("");
+  const [plan, setPlan] = useState<PlanItem[]>([]);
+
   const [outcomes, setOutcomes] = useState<Outcomes>({});
-  const [savedOutcomes, setSavedOutcomes] = useState<Outcomes>({});
-  const [includeSamples, setIncludeSamples] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [outcomesReady, setOutcomesReady] = useState(false);
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+
+  const [loadingPlan, setLoadingPlan] = useState(false);
+  const [loadingOutcomes, setLoadingOutcomes] = useState(false);
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const [planError, setPlanError] = useState("");
+  const [outcomesError, setOutcomesError] = useState("");
+  const [dashboardError, setDashboardError] = useState("");
   const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
 
-  const stats = funnel([
-    ...(includeSamples ? SAMPLE_EVENT_OUTCOMES.map((row) => row.stage) : []),
-    ...Object.values(savedOutcomes),
-  ]);
-
-  const metrics = [
-    { label: "Contacts", value: stats.contacts },
-    { label: "Meetings", value: stats.meetings },
-    { label: "Pilots", value: stats.pilots },
-    { label: "Deals", value: stats.deals },
-  ];
-
-  const hasUnsavedChanges =
-    JSON.stringify(outcomes) !== JSON.stringify(savedOutcomes);
+  const metrics = dashboard
+    ? [
+        { label: "Contacts", value: dashboard.contacts },
+        { label: "Meetings", value: dashboard.meetings },
+        { label: "Pilots", value: dashboard.pilots },
+        { label: "Deals", value: dashboard.deals },
+      ]
+    : [];
 
   function toggleSelection(
     field: "target_countries" | "wants",
@@ -319,83 +187,139 @@ export default function Home() {
     }));
   }
 
-  async function generatePlan(event: FormEvent<HTMLFormElement>) {
+  async function makePlan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
+    if (loadingPlan) return;
+
+    setPlanError("");
     setNotice("");
 
     const submitted: Founder = {
       ...founder,
       name: founder.name.trim(),
-      company: founder.company.trim(),
       needs: founder.needs.trim(),
     };
 
     if (
       !submitted.name ||
-      !submitted.company ||
       !submitted.needs ||
       !submitted.target_countries.length ||
       !submitted.wants.length
     ) {
-      setError("Complete your profile and select countries and people to meet.");
+      setPlanError(
+        "Enter your name and needs, then select countries and people to meet.",
+      );
       return;
     }
 
-    setLoading(true);
+    setLoadingPlan(true);
 
     try {
-      const result = await loadGamePlan(submitted);
+      const data = await api("/api/plan", "POST", submitted);
 
-      if (!result.length) {
-        throw new Error("No recommendations returned.");
+      if (
+        !Array.isArray(data) ||
+        data.length === 0 ||
+        !data.every(isPlanItem)
+      ) {
+        throw new Error("Invalid or empty game plan.");
       }
 
-      const saved = loadSavedOutcomes(submitted);
+      const entries = data as PlanItem[];
 
-      setActiveFounder(submitted);
-      setPlan(result);
-      setOutcomes(saved);
-      setSavedOutcomes(saved);
-      setNotice("Your sample game plan is ready.");
+      if (new Set(entries.map((item) => item.id)).size !== entries.length) {
+        throw new Error("Duplicate attendees returned.");
+      }
+
+      setPlan(
+        [...entries]
+          .sort((a, b) => a.rank - b.rank)
+          .slice(0, 10),
+      );
+      setPlanOwner(submitted.name);
+      setNotice("Your game plan is ready.");
     } catch {
-      setError("Couldn’t make a plan. Try again.");
+      setPlanError("Couldn’t make a plan. Try again.");
     } finally {
-      setLoading(false);
+      setLoadingPlan(false);
     }
   }
 
-  function updateOutcome(id: string, value: string) {
-    setOutcomes((current) => {
-      const next = { ...current };
-
-      if (value === "") {
-        delete next[id];
-      } else {
-        next[id] = value as Stage;
-      }
-
-      return next;
-    });
-    setNotice("");
-  }
-
-  function saveOutcomes() {
-    if (!activeFounder) return;
-
-    setSavedOutcomes({ ...outcomes });
-    setError("");
+  async function loadOutcomes() {
+    setLoadingOutcomes(true);
+    setOutcomesReady(false);
+    setOutcomesError("");
 
     try {
-      localStorage.setItem(
-        storageKey(activeFounder),
-        JSON.stringify(outcomes),
-      );
-      setNotice("Outcomes saved in this browser. Your dashboard is updated.");
+      const data = await api("/api/outcomes");
+
+      if (
+        !isObject(data) ||
+        !Object.values(data).every(isStage)
+      ) {
+        throw new Error("Invalid outcomes response.");
+      }
+
+      setOutcomes(data as Outcomes);
+      setOutcomesReady(true);
     } catch {
-      setNotice(
-        "Dashboard updated for this session. Browser storage is unavailable.",
-      );
+      setOutcomesError("Couldn’t load saved outcomes. Please retry.");
+    } finally {
+      setLoadingOutcomes(false);
+    }
+  }
+
+  async function loadDashboard() {
+    setLoadingDashboard(true);
+    setDashboardError("");
+
+    try {
+      const data = await api("/api/dashboard");
+
+      if (!isDashboard(data)) {
+        throw new Error("Invalid dashboard response.");
+      }
+
+      setDashboard(data);
+    } catch {
+      setDashboard(null);
+      setDashboardError("Couldn’t load the event dashboard. Please retry.");
+    } finally {
+      setLoadingDashboard(false);
+    }
+  }
+
+  function openView(next: View) {
+    if (savingId || loadingOutcomes) return;
+
+    setView(next);
+    setNotice("");
+
+    if (next === "log") void loadOutcomes();
+    if (next === "dashboard") void loadDashboard();
+  }
+
+  async function saveOutcome(id: string, stage: Stage) {
+    if (!outcomesReady || savingId || outcomes[id] === stage) return;
+
+    setSavingId(id);
+    setOutcomesError("");
+    setNotice("");
+
+    try {
+      const data = await api("/api/outcomes", "POST", { id, stage });
+
+      if (!isObject(data) || data.ok !== true) {
+        throw new Error("Outcome was not confirmed.");
+      }
+
+      setOutcomes((current) => ({ ...current, [id]: stage }));
+      setDashboard(null);
+      setNotice("Outcome saved. Open the dashboard to see updated totals.");
+    } catch {
+      setOutcomesError("Couldn’t save this outcome. Please try again.");
+    } finally {
+      setSavingId(null);
     }
   }
 
@@ -424,7 +348,7 @@ export default function Home() {
             conversations that become meetings, pilots and deals.
           </p>
           <span className="preview-label">
-            Frontend preview · Fictional data · Gemma not connected
+            Before the event → After the event → Measurable outcomes
           </span>
         </section>
 
@@ -438,8 +362,11 @@ export default function Home() {
               key={id}
               type="button"
               aria-pressed={view === id}
-              className={view === id ? "view-button active" : "view-button"}
-              onClick={() => setView(id)}
+              disabled={savingId !== null || loadingOutcomes}
+              className={
+                view === id ? "view-button active" : "view-button"
+              }
+              onClick={() => openView(id)}
             >
               <span>{number}</span>
               {label}
@@ -447,171 +374,171 @@ export default function Home() {
           ))}
         </nav>
 
-        {error && <p className="error-message" role="alert">{error}</p>}
-        {notice && <p className="notice" role="status">{notice}</p>}
+        {notice && (
+          <p className="notice" role="status">{notice}</p>
+        )}
 
         {view === "plan" && (
-          <div className="plan-layout">
-            <aside className="panel profile-panel">
-              <p className="eyebrow">Start here</p>
-              <h2>Your founder profile</h2>
-              <p className="muted">
-                Tell us what you build and what you need next.
-              </p>
+          <>
+            {planError && (
+              <p className="error-message" role="alert">{planError}</p>
+            )}
 
-              <form onSubmit={generatePlan} className="profile-form">
-                <Field label="Your name">
-                  <input
-                    required
-                    maxLength={80}
-                    autoComplete="name"
-                    value={founder.name}
-                    onChange={(event) =>
-                      setFounder({ ...founder, name: event.target.value })
-                    }
-                  />
-                </Field>
+            <div className="plan-layout">
+              <aside className="panel profile-panel">
+                <p className="eyebrow">Start here</p>
+                <h2>Your founder profile</h2>
+                <p className="muted">
+                  Tell us what you build and what you need next.
+                </p>
 
-                <Field label="Company">
-                  <input
-                    required
-                    maxLength={120}
-                    autoComplete="organization"
-                    value={founder.company}
-                    onChange={(event) =>
-                      setFounder({ ...founder, company: event.target.value })
-                    }
-                  />
-                </Field>
+                <form
+                  onSubmit={makePlan}
+                  className="profile-form"
+                  aria-busy={loadingPlan}
+                >
+                  <Field label="Your name">
+                    <input
+                      required
+                      maxLength={80}
+                      autoComplete="name"
+                      value={founder.name}
+                      onChange={(event) =>
+                        setFounder({
+                          ...founder,
+                          name: event.target.value,
+                        })
+                      }
+                    />
+                  </Field>
 
-                <div className="form-columns">
                   <Field label="Sector">
                     <select
                       value={founder.sector}
                       onChange={(event) =>
-                        setFounder({ ...founder, sector: event.target.value })
+                        setFounder({
+                          ...founder,
+                          sector: event.target.value,
+                        })
                       }
                     >
                       {SECTORS.map((sector) => (
-                        <option key={sector} value={sector}>{sector}</option>
+                        <option key={sector} value={sector}>
+                          {sector}
+                        </option>
                       ))}
                     </select>
                   </Field>
 
-                  <Field label="Startup stage">
-                    <select
-                      value={founder.stage}
+                  <fieldset>
+                    <legend>Target countries</legend>
+                    <div className="choices">
+                      {COUNTRIES.map((country) => (
+                        <label className="choice" key={country}>
+                          <input
+                            type="checkbox"
+                            checked={founder.target_countries.includes(country)}
+                            onChange={() =>
+                              toggleSelection("target_countries", country)
+                            }
+                          />
+                          {country}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <fieldset>
+                    <legend>Who do you want to meet?</legend>
+                    <div className="choices">
+                      {TYPES.map((type) => (
+                        <label className="choice" key={type}>
+                          <input
+                            type="checkbox"
+                            checked={founder.wants.includes(type)}
+                            onChange={() =>
+                              toggleSelection("wants", type)
+                            }
+                          />
+                          {type}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
+                  <Field label="What are you building, and what do you need?">
+                    <textarea
+                      required
+                      rows={4}
+                      maxLength={1000}
+                      value={founder.needs}
                       onChange={(event) =>
-                        setFounder({ ...founder, stage: event.target.value })
+                        setFounder({
+                          ...founder,
+                          needs: event.target.value,
+                        })
                       }
-                    >
-                      <option value="pre-seed">Pre-seed</option>
-                      <option value="seed">Seed</option>
-                      <option value="series-a">Series A</option>
-                      <option value="growth">Growth</option>
-                    </select>
+                    />
                   </Field>
-                </div>
 
-                <fieldset>
-                  <legend>Target countries</legend>
-                  <div className="choices">
-                    {COUNTRIES.map((country) => (
-                      <label key={country} className="choice">
-                        <input
-                          type="checkbox"
-                          checked={founder.target_countries.includes(country)}
-                          onChange={() =>
-                            toggleSelection("target_countries", country)
-                          }
-                        />
-                        {country}
-                      </label>
-                    ))}
+                  <button
+                    type="submit"
+                    className="primary-button"
+                    disabled={loadingPlan}
+                  >
+                    {loadingPlan
+                      ? "Making your game plan…"
+                      : "Make my game plan →"}
+                  </button>
+                </form>
+              </aside>
+
+              <section aria-labelledby="plan-heading">
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">Before the event</p>
+                    <h2 id="plan-heading">
+                      {plan.length
+                        ? `${planOwner}’s game plan`
+                        : "Your next ten conversations"}
+                    </h2>
                   </div>
-                </fieldset>
+                  <span className="badge">{plan.length} people</span>
+                </div>
 
-                <fieldset>
-                  <legend>Who do you want to meet?</legend>
-                  <div className="choices">
-                    {TYPES.map((type) => (
-                      <label key={type} className="choice">
-                        <input
-                          type="checkbox"
-                          checked={founder.wants.includes(type)}
-                          onChange={() => toggleSelection("wants", type)}
-                        />
-                        {type}
-                      </label>
-                    ))}
+                {!plan.length ? (
+                  <div className="empty-state">
+                    <span className="empty-number">10</span>
+                    <h3>Fewer random introductions.</h3>
+                    <p>
+                      Complete your profile to see who to meet,
+                      why they matter and how to start the conversation.
+                    </p>
+                    {loadingPlan && (
+                      <p role="status">Finding your recommendations…</p>
+                    )}
                   </div>
-                </fieldset>
+                ) : (
+                  <>
+                    <p className="section-note">
+                      A clear reason to connect, and an opener to get started.
+                    </p>
 
-                <Field label="What do you need?">
-                  <textarea
-                    required
-                    rows={3}
-                    maxLength={600}
-                    value={founder.needs}
-                    onChange={(event) =>
-                      setFounder({ ...founder, needs: event.target.value })
-                    }
-                  />
-                </Field>
-
-                <button className="primary-button" disabled={loading}>
-                  {loading ? "Making your plan…" : "Make my game plan →"}
-                </button>
-              </form>
-            </aside>
-
-            <section aria-labelledby="plan-heading">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Before the event</p>
-                  <h2 id="plan-heading">
-                    {activeFounder
-                      ? `${activeFounder.name}’s game plan`
-                      : "Your next ten conversations"}
-                  </h2>
-                </div>
-                <span className="badge">{plan.length} people</span>
-              </div>
-
-              {!plan.length ? (
-                <div className="empty-state">
-                  <span className="empty-number">10</span>
-                  <h3>Fewer random introductions.</h3>
-                  <p>
-                    Complete your founder profile to see who to meet,
-                    why they matter and how to start the conversation.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <p className="section-note">
-                    Sample recommendations. Live Gemma ranking will replace
-                    this preview when the backend is connected.
-                  </p>
-
-                  <div className="cards">
-                    {plan.map((item) => {
-                      const person = PROFILE_BY_ID[item.id];
-
-                      return (
+                    <div className="cards">
+                      {plan.map((item) => (
                         <article className="person-card" key={item.id}>
                           <div className="person-heading">
                             <span className="rank">{item.rank}</span>
                             <div>
-                              <h3>{person.name}</h3>
-                              <p className="muted">{person.org}</p>
+                              <h3>{item.name}</h3>
+                              <p className="muted">{item.org}</p>
                             </div>
                           </div>
 
                           <div className="tags">
-                            <span>{person.country}</span>
-                            <span>{person.type}</span>
-                            <span>{person.sector}</span>
+                            <span>{item.country}</span>
+                            <span>{item.type}</span>
+                            {item.sector && <span>{item.sector}</span>}
                           </div>
 
                           <p className="card-label">Why meet</p>
@@ -622,13 +549,13 @@ export default function Home() {
                             <p>“{item.opener}”</p>
                           </div>
                         </article>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </section>
-          </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+            </div>
+          </>
         )}
 
         {view === "log" && (
@@ -638,83 +565,100 @@ export default function Home() {
                 <p className="eyebrow">After the event</p>
                 <h2>What came of the conversation?</h2>
               </div>
-              {hasUnsavedChanges && (
-                <span className="badge">Unsaved changes</span>
-              )}
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={loadingOutcomes || savingId !== null}
+                onClick={() => void loadOutcomes()}
+              >
+                {loadingOutcomes ? "Loading…" : "Refresh outcomes"}
+              </button>
             </div>
 
             <p className="muted">
-              Record the furthest stage reached for each person.
-              Leave people you have not contacted as “Not logged”.
+              Choose the furthest stage reached. Each selection saves
+              immediately to the shared demo event log.
             </p>
+
+            {outcomesError && (
+              <p className="error-message api-message" role="alert">
+                {outcomesError}
+              </p>
+            )}
+
+            {loadingOutcomes && (
+              <p className="section-note api-message" role="status">
+                Loading saved outcomes…
+              </p>
+            )}
 
             {!plan.length ? (
               <div className="empty-state compact">
-                <h3>Your contacts will appear here.</h3>
+                <h3>Your recommended contacts will appear here.</h3>
                 <p>Generate a game plan first.</p>
                 <button
+                  type="button"
                   className="primary-button"
-                  onClick={() => setView("plan")}
+                  disabled={loadingOutcomes}
+                  onClick={() => openView("plan")}
                 >
                   Make a game plan →
                 </button>
               </div>
             ) : (
-              <>
-                <div className="outcome-list">
-                  {plan.map((item) => {
-                    const person = PROFILE_BY_ID[item.id];
-
-                    return (
-                      <div className="outcome-row" key={person.id}>
-                        <div className="person-heading">
-                          <span className="rank">{item.rank}</span>
-                          <div>
-                            <h3>{person.name}</h3>
-                            <p className="muted">
-                              {person.org} · {person.country}
-                            </p>
-                          </div>
-                        </div>
-
-                        <label className="outcome-select">
-                          <span className="sr-only">
-                            Outcome for {person.name}
-                          </span>
-                          <select
-                            value={outcomes[person.id] ?? ""}
-                            onChange={(event) =>
-                              updateOutcome(person.id, event.target.value)
-                            }
-                          >
-                            <option value="">Not logged</option>
-                            {STAGES.map((stage) => (
-                              <option key={stage} value={stage}>
-                                {STAGE_LABELS[stage]}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="save-row">
-                  <p className="muted">
-                    Saved on this browser for {activeFounder?.company}.
-                    Generate this founder’s plan again after refreshing
-                    to reload the saved log.
-                  </p>
-                  <button
-                    className="primary-button"
-                    onClick={saveOutcomes}
-                    disabled={!hasUnsavedChanges}
+              <div className="outcome-list">
+                {plan.map((item) => (
+                  <div
+                    className="outcome-row"
+                    key={item.id}
+                    aria-busy={savingId === item.id}
                   >
-                    Save outcomes
-                  </button>
-                </div>
-              </>
+                    <div className="person-heading">
+                      <span className="rank">{item.rank}</span>
+                      <div>
+                        <h3>{item.name}</h3>
+                        <p className="muted">
+                          {item.org} · {item.country}
+                        </p>
+                        <p className="muted">
+                          {savingId === item.id
+                            ? "Saving…"
+                            : !outcomesReady
+                              ? "Waiting for saved outcomes"
+                              : outcomes[item.id]
+                                ? `Saved: ${STAGE_LABELS[outcomes[item.id]]}`
+                                : "Not logged"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div
+                      className="outcome-actions"
+                      role="group"
+                      aria-label={`Outcome for ${item.name}`}
+                    >
+                      {STAGES.map((stage) => (
+                        <button
+                          key={stage}
+                          type="button"
+                          className="outcome-button"
+                          aria-pressed={outcomes[item.id] === stage}
+                          disabled={
+                            !outcomesReady ||
+                            loadingOutcomes ||
+                            savingId !== null
+                          }
+                          onClick={() =>
+                            void saveOutcome(item.id, stage)
+                          }
+                        >
+                          {STAGE_LABELS[stage]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </section>
         )}
@@ -726,69 +670,86 @@ export default function Home() {
                 <p className="eyebrow">For Startup ASEAN</p>
                 <h2>Event outcomes, beyond attendance.</h2>
               </div>
-              <span className="badge">Preview dashboard</span>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={loadingDashboard}
+                onClick={() => void loadDashboard()}
+              >
+                {loadingDashboard ? "Updating…" : "Refresh dashboard"}
+              </button>
             </div>
 
-            <div className="dashboard-controls">
-              <label className="choice">
-                <input
-                  type="checkbox"
-                  checked={includeSamples}
-                  onChange={(event) =>
-                    setIncludeSamples(event.target.checked)
-                  }
-                />
-                Include fictional event records
-              </label>
-              <p className="muted">
-                {includeSamples ? SAMPLE_EVENT_OUTCOMES.length : 0} sample
-                records + {Object.keys(savedOutcomes).length} saved founder
-                records
+            <p className="section-note">
+              Event totals include saved contact outcomes and the
+              event records supplied by your team.
+            </p>
+
+            {dashboardError && (
+              <p className="error-message" role="alert">
+                {dashboardError}
               </p>
-            </div>
+            )}
 
-            <div className="metrics">
-              {metrics.map((metric) => (
-                <article className="metric-card" key={metric.label}>
-                  <p>{metric.label}</p>
-                  <strong>{metric.value}</strong>
-                </article>
-              ))}
-            </div>
-
-            <figure className="panel funnel-chart">
-              <figcaption>
-                <h3>From first contact to business outcome</h3>
-                <p className="muted">
-                  A deal also counts as a pilot and a meeting.
-                  Only saved outcomes are included.
-                </p>
-              </figcaption>
-
-              {metrics.map((metric) => (
-                <div className="chart-row" key={metric.label}>
-                  <span>{metric.label}</span>
-                  <div className="chart-track" aria-hidden="true">
-                    <div
-                      className="chart-fill"
-                      style={{
-                        width: `${
-                          (metric.value / Math.max(stats.contacts, 1)) * 100
-                        }%`,
-                      }}
-                    />
-                  </div>
-                  <strong>{metric.value}</strong>
+            {loadingDashboard ? (
+              <div className="panel" role="status">
+                Loading event results…
+              </div>
+            ) : dashboard ? (
+              <>
+                <div className="metrics">
+                  {metrics.map((metric) => (
+                    <article className="metric-card" key={metric.label}>
+                      <p>{metric.label}</p>
+                      <strong>{metric.value}</strong>
+                    </article>
+                  ))}
                 </div>
-              ))}
 
-              {stats.contacts === 0 && (
-                <p className="section-note">
-                  No outcomes yet. Save a contact’s outcome or enable
-                  the sample records to preview the funnel.
-                </p>
-              )}
-            </figure>
+                <figure className="panel funnel-chart">
+                  <figcaption>
+                    <h3>From first contact to business outcome</h3>
+                    <p className="muted">
+                      These are cumulative stages: a deal also counts
+                      as a pilot and a meeting.
+                    </p>
+                  </figcaption>
+
+                  {metrics.map((metric) => (
+                    <div className="chart-row" key={metric.label}>
+                      <span>{metric.label}</span>
+                      <div className="chart-track" aria-hidden="true">
+                        <div
+                          className="chart-fill"
+                          style={{
+                            width: `${
+                              Math.min(
+                                1,
+                                metric.value /
+                                  Math.max(dashboard.contacts, 1),
+                              ) * 100
+                            }%`,
+                          }}
+                        />
+                      </div>
+                      <strong>{metric.value}</strong>
+                    </div>
+                  ))}
+
+                  {dashboard.contacts === 0 && (
+                    <p className="section-note">
+                      No contact outcomes have been recorded yet.
+                      Log an outcome after your first conversation.
+                    </p>
+                  )}
+                </figure>
+              </>
+            ) : (
+              <div className="empty-state">
+                <h3>Event results are unavailable.</h3>
+                <p>Use Refresh dashboard to try again.</p>
+              </div>
+            )}
           </section>
         )}
       </main>
