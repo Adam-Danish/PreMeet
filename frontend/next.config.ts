@@ -13,7 +13,6 @@ const nextConfig: NextConfig = {
 
   turbopack: {
     rules: {
-      // Apply Tailwind processing only to the global stylesheet.
       "globals.css": {
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
@@ -22,6 +21,12 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
+    // Vercel Services handles API routing in production.
+    if (process.env.NODE_ENV === "production") {
+      return [];
+    }
+
+    // Local development uses your local FastAPI server.
     return [
       {
         source: "/api/:path*",
