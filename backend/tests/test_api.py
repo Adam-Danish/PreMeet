@@ -23,12 +23,12 @@ def gemma(monkeypatch):
     return install
 
 
-def test_plan_returns_10_flat_entries_with_the_persons_details(client, aina, gemma):
+def test_plan_returns_5_flat_entries_with_the_persons_details(client, aina, gemma):
     res = client.post("/api/plan", json=aina)
     assert res.status_code == 200
     plan = res.json()
-    assert len(plan) == 10
-    assert [e["rank"] for e in plan] == list(range(1, 11))
+    assert len(plan) == 5
+    assert [e["rank"] for e in plan] == list(range(1, 6))
     assert {"id", "rank", "name", "org", "country", "type", "why", "opener"} <= set(plan[0])
     assert plan[0]["name"] == "Budi" and plan[0]["org"] == "Sawit Agro (sample)"
 

@@ -234,7 +234,7 @@ export default function Home() {
       setPlan(
         [...entries]
           .sort((a, b) => a.rank - b.rank)
-          .slice(0, 10),
+          .slice(0, 5),
       );
       setPlanOwner(submitted.name);
       setNotice("Your game plan is ready.");
@@ -500,7 +500,7 @@ export default function Home() {
                     <h2 id="plan-heading">
                       {plan.length
                         ? `${planOwner}’s game plan`
-                        : "Your next ten conversations"}
+                        : "Your next five conversations"}
                     </h2>
                   </div>
                   <span className="badge">{plan.length} people</span>
@@ -508,7 +508,7 @@ export default function Home() {
 
                 {!plan.length ? (
                   <div className="empty-state">
-                    <span className="empty-number">10</span>
+                    <span className="empty-number">5</span>
                     <h3>Fewer random introductions.</h3>
                     <p>
                       Complete your profile to see who to meet,
