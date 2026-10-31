@@ -1,0 +1,272 @@
+[
+  {
+    "id": "p01",
+    "name": "Farah",
+    "org": "Kebun Sensor (sample)",
+    "country": "Malaysia",
+    "type": "startup",
+    "sector": "agriculture",
+    "looking_for": "Distribution partners for soil sensors on smallholder farms"
+  },
+  {
+    "id": "p02",
+    "name": "Rizky",
+    "org": "Warung Ledger (sample)",
+    "country": "Indonesia",
+    "type": "startup",
+    "sector": "fintech",
+    "looking_for": "Retail merchants to trial a bookkeeping and payments app"
+  },
+  {
+    "id": "p03",
+    "name": "Mali",
+    "org": "Care Lantern (sample)",
+    "country": "Thailand",
+    "type": "startup",
+    "sector": "healthtech",
+    "looking_for": "Clinics to test remote follow-up tools for elderly patients"
+  },
+  {
+    "id": "p04",
+    "name": "Linh",
+    "org": "Route Lotus (sample)",
+    "country": "Vietnam",
+    "type": "startup",
+    "sector": "logistics",
+    "looking_for": "Urban delivery fleets to trial route optimisation software"
+  },
+  {
+    "id": "p05",
+    "name": "Jia",
+    "org": "Invoice Fern (sample)",
+    "country": "Singapore",
+    "type": "startup",
+    "sector": "fintech",
+    "looking_for": "Accounting partners serving cross-border small businesses"
+  },
+  {
+    "id": "p06",
+    "name": "Bea",
+    "org": "Clinic Harbour (sample)",
+    "country": "Philippines",
+    "type": "startup",
+    "sector": "healthtech",
+    "looking_for": "Hospital partners for appointment and referral software"
+  },
+  {
+    "id": "p07",
+    "name": "Budi",
+    "org": "Sawit Agro (sample)",
+    "country": "Indonesia",
+    "type": "corporate",
+    "sector": "agriculture",
+    "looking_for": "Plantation pilots for yield monitoring and irrigation sensors"
+  },
+  {
+    "id": "p08",
+    "name": "Hafiz",
+    "org": "Parcel Rimba (sample)",
+    "country": "Malaysia",
+    "type": "startup",
+    "sector": "logistics",
+    "looking_for": "E-commerce sellers needing shared last-mile delivery"
+  },
+  {
+    "id": "p09",
+    "name": "Sari",
+    "org": "Sehat Bridge (sample)",
+    "country": "Indonesia",
+    "type": "startup",
+    "sector": "healthtech",
+    "looking_for": "Rural clinics needing digital patient record tools"
+  },
+  {
+    "id": "p10",
+    "name": "Niran",
+    "org": "Baht Basket (sample)",
+    "country": "Thailand",
+    "type": "startup",
+    "sector": "fintech",
+    "looking_for": "Payment providers serving independent food vendors"
+  },
+  {
+    "id": "p11",
+    "name": "Minh",
+    "org": "Paddy Signal (sample)",
+    "country": "Vietnam",
+    "type": "startup",
+    "sector": "agriculture",
+    "looking_for": "Rice cooperatives to test crop disease alerts"
+  },
+  {
+    "id": "p12",
+    "name": "Wei",
+    "org": "Cargo Sprout (sample)",
+    "country": "Singapore",
+    "type": "startup",
+    "sector": "logistics",
+    "looking_for": "Freight forwarders needing shipment visibility tools"
+  },
+  {
+    "id": "p13",
+    "name": "Paolo",
+    "org": "Harvest Reef (sample)",
+    "country": "Philippines",
+    "type": "startup",
+    "sector": "agriculture",
+    "looking_for": "Produce buyers and cooperatives for a harvest marketplace"
+  },
+  {
+    "id": "p14",
+    "name": "Dewi",
+    "org": "Nusantara Field Ventures (sample)",
+    "country": "Indonesia",
+    "type": "investor",
+    "sector": "agriculture",
+    "looking_for": "Seed funding opportunities in plantation technology with pilot customers"
+  },
+  {
+    "id": "p15",
+    "name": "Pim",
+    "org": "Mekong Harvest Capital (sample)",
+    "country": "Thailand",
+    "type": "investor",
+    "sector": "agriculture",
+    "looking_for": "Seed funding opportunities in farm sensors and plantation analytics"
+  },
+  {
+    "id": "p16",
+    "name": "Amir",
+    "org": "Straits Payment Ventures (sample)",
+    "country": "Malaysia",
+    "type": "investor",
+    "sector": "fintech",
+    "looking_for": "Early-stage payment platforms serving small businesses"
+  },
+  {
+    "id": "p17",
+    "name": "Rachel",
+    "org": "Harbour Health Capital (sample)",
+    "country": "Singapore",
+    "type": "investor",
+    "sector": "healthtech",
+    "looking_for": "Digital health startups with hospital customers"
+  },
+  {
+    "id": "p18",
+    "name": "Quang",
+    "org": "Lotus Freight Ventures (sample)",
+    "country": "Vietnam",
+    "type": "investor",
+    "sector": "logistics",
+    "looking_for": "Growth-stage warehouse automation and freight software companies"
+  },
+  {
+    "id": "p19",
+    "name": "Camille",
+    "org": "Isla Inclusion Fund (sample)",
+    "country": "Philippines",
+    "type": "investor",
+    "sector": "fintech",
+    "looking_for": "Founders improving access to remittances and savings"
+  },
+  {
+    "id": "p20",
+    "name": "Arif",
+    "org": "Java Care Ventures (sample)",
+    "country": "Indonesia",
+    "type": "investor",
+    "sector": "healthtech",
+    "looking_for": "Healthcare startups building affordable diagnostic tools"
+  },
+  {
+    "id": "p21",
+    "name": "Kanya",
+    "org": "Siam Route Capital (sample)",
+    "country": "Thailand",
+    "type": "investor",
+    "sector": "logistics",
+    "looking_for": "Software companies improving regional freight operations"
+  },
+  {
+    "id": "p22",
+    "name": "Somchai",
+    "org": "Siam Orchard Group (sample)",
+    "country": "Thailand",
+    "type": "corporate",
+    "sector": "agriculture",
+    "looking_for": "Plantation pilots to reduce water use and monitor fruit yields"
+  },
+  {
+    "id": "p23",
+    "name": "Rina",
+    "org": "Borneo Estate Partners (sample)",
+    "country": "Indonesia",
+    "type": "corporate",
+    "sector": "agriculture",
+    "looking_for": "Plantation pilots for pest detection across palm estates"
+  },
+  {
+    "id": "p24",
+    "name": "Anong",
+    "org": "Chao Phraya Growers (sample)",
+    "country": "Thailand",
+    "type": "corporate",
+    "sector": "agriculture",
+    "looking_for": "Farm-tech pilots for soil health and plantation productivity"
+  },
+  {
+    "id": "p25",
+    "name": "Daniel",
+    "org": "Meridian Freight Group (sample)",
+    "country": "Singapore",
+    "type": "corporate",
+    "sector": "logistics",
+    "looking_for": "Technology partners for warehouse tracking and delivery scheduling"
+  },
+  {
+    "id": "p26",
+    "name": "Nurul",
+    "org": "Sentosa Care Network (sample)",
+    "country": "Malaysia",
+    "type": "corporate",
+    "sector": "healthtech",
+    "looking_for": "Patient scheduling and remote consultation solutions for clinics"
+  },
+  {
+    "id": "p27",
+    "name": "Intan",
+    "org": "Agri Launch Programme (sample)",
+    "country": "Malaysia",
+    "type": "government",
+    "sector": "agriculture",
+    "looking_for": "Agritech founders joining a local farm innovation accelerator"
+  },
+  {
+    "id": "p28",
+    "name": "Thanh",
+    "org": "Digital Trade Programme (sample)",
+    "country": "Vietnam",
+    "type": "government",
+    "sector": "logistics",
+    "looking_for": "Startups supporting export documentation and customs digitisation"
+  },
+  {
+    "id": "p29",
+    "name": "Liza",
+    "org": "Community Health Innovation Office (sample)",
+    "country": "Philippines",
+    "type": "government",
+    "sector": "healthtech",
+    "looking_for": "Healthtech teams improving access to community care"
+  },
+  {
+    "id": "p30",
+    "name": "Fajar",
+    "org": "Digital Enterprise Programme (sample)",
+    "country": "Indonesia",
+    "type": "government",
+    "sector": "fintech",
+    "looking_for": "Financial technology startups supporting small business digitisation"
+  }
+]
