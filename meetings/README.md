@@ -1,0 +1,1 @@
+# Meetings and Supabase setup
