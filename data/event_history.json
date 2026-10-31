@@ -1,0 +1,13 @@
+{
+  "attended": ["event-004", "event-005"],
+  "outcomes": [
+    {"event_id": "event-004", "id": "p07", "stage": "deal"},
+    {"event_id": "event-004", "id": "p23", "stage": "pilot"},
+    {"event_id": "event-004", "id": "p24", "stage": "meeting"},
+    {"event_id": "event-004", "id": "p22", "stage": "meeting"},
+    {"event_id": "event-004", "id": "p14", "stage": "none"},
+    {"event_id": "event-005", "id": "p15", "stage": "pilot"},
+    {"event_id": "event-005", "id": "p14", "stage": "meeting"},
+    {"event_id": "event-005", "id": "p21", "stage": "none"}
+  ]
+}

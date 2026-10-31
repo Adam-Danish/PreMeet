@@ -2,7 +2,7 @@
 # Run from the repo's main folder: uvicorn backend.app:app --reload --port 8000
 from typing import Literal
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from ai.ai import make_game_plan, sample_game_plan
@@ -47,3 +47,21 @@ def save_outcome(o: Outcome):
 @app.get("/api/dashboard")
 def dashboard():
     return rules.dashboard()
+
+
+@app.get("/api/events")
+def events():
+    return rules.current_events()
+
+
+@app.get("/api/events/{event_id}")
+def event(event_id: str):
+    found = rules.get_event(event_id)
+    if found is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return found
+
+
+@app.get("/api/event-history")
+def event_history():
+    return rules.event_history()

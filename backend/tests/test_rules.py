@@ -136,3 +136,45 @@ def test_dashboard_with_no_data_at_all(data_dir):
     (data_dir / "profiles.json").unlink()
     (data_dir / "event_outcomes.json").unlink()
     assert rules.dashboard()["contacts"] == 0
+
+
+# Events
+
+def test_current_events_leave_out_completed_ones():
+    assert {e["status"] for e in rules.current_events()} == {"upcoming", "ongoing"}
+
+
+def test_current_events_sort_by_real_time_across_timezones():
+    assert [e["id"] for e in rules.current_events()] == ["e2", "e1"]
+
+
+def test_get_event_finds_any_status_and_misses_cleanly():
+    assert rules.get_event("e3")["status"] == "completed"
+    assert rules.get_event("nope") is None
+
+
+def test_history_is_attended_completed_events_newest_first():
+    assert [row["event"]["id"] for row in rules.event_history()] == ["e4", "e3", "e6"]
+
+
+def test_history_totals_are_cumulative_and_kept_per_event():
+    totals = {row["event"]["id"]: row["outcomes"] for row in rules.event_history()}
+    assert totals["e3"] == {"contacts": 3, "meetings": 2, "pilots": 2, "deals": 1}
+    assert totals["e4"] == {"contacts": 1, "meetings": 1, "pilots": 0, "deals": 0}
+
+
+def test_attended_event_with_no_contacts_shows_zeros():
+    totals = {row["event"]["id"]: row["outcomes"] for row in rules.event_history()}
+    assert totals["e6"] == {"contacts": 0, "meetings": 0, "pilots": 0, "deals": 0}
+
+
+def test_history_ignores_todays_live_log():
+    rules.set_outcome("p09", "deal")
+    assert sum(row["outcomes"]["deals"] for row in rules.event_history()) == 1
+
+
+def test_events_are_empty_lists_without_files(data_dir):
+    (data_dir / "events.json").unlink()
+    (data_dir / "event_history.json").unlink()
+    assert rules.current_events() == []
+    assert rules.event_history() == []
