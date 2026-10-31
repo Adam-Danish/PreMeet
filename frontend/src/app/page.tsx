@@ -122,7 +122,7 @@ async function api(
         : {}),
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(180_000), // a new game plan can take ~2 min under API load
   });
 
   if (!response.ok) {
