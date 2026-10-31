@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent, type ReactNode } from "react";
+import Link from "next/link";
 
 type Founder = {
   name: string;
@@ -326,14 +327,17 @@ export default function Home() {
   return (
     <div className="app-shell">
       <header className="site-header">
-        <div className="header-inner">
-          <a className="brand" href="/">
-            <span className="brand-mark">P</span>
-            <span>PreMeet</span>
-          </a>
-          <span className="event-label">Hack Day KL · 31 Oct 2026</span>
-        </div>
-      </header>
+  <div className="header-inner">
+    <Link className="brand" href="/">
+      <span className="brand-mark">P</span>
+      <span>PreMeet</span>
+    </Link>
+
+    <Link href="/events" className="secondary-button">
+      Explore events →
+    </Link>
+  </div>
+</header>
 
       <main className="main">
         <section className="hero">
