@@ -81,11 +81,41 @@ EVENT_OUTCOMES = [
 ]
 
 
+def event(eid, status, starts_at):
+    return {"id": eid, "title": f"Event {eid}", "description": "Sample.", "organizer": "Sample",
+            "starts_at": starts_at, "ends_at": starts_at, "venue": "Hall", "city": "Kuala Lumpur",
+            "country": "Malaysia", "status": status, "attendee_count": 10, "topics": ["AI"]}
+
+
+# e2 starts before e1 even though its text sorts later: 09:00+08:00 is 01:00 UTC, 09:00+07:00 is 02:00
+EVENTS = [
+    event("e1", "upcoming", "2026-11-20T09:00:00+07:00"),
+    event("e2", "ongoing", "2026-11-20T09:00:00+08:00"),
+    event("e3", "completed", "2026-08-01T09:00:00+08:00"),
+    event("e4", "completed", "2026-09-01T09:00:00+08:00"),
+    event("e5", "completed", "2026-10-01T09:00:00+08:00"),  # finished, but not attended
+    event("e6", "completed", "2026-07-01T09:00:00+08:00"),  # attended, no contacts made
+]
+
+EVENT_HISTORY = {
+    "attended": ["e3", "e4", "e6", "e1", "gone"],  # e1 hasn't finished, "gone" doesn't exist
+    "outcomes": [
+        {"event_id": "e3", "id": "p01", "stage": "deal"},
+        {"event_id": "e3", "id": "p02", "stage": "pilot"},
+        {"event_id": "e3", "id": "p03", "stage": "none"},
+        {"event_id": "e4", "id": "p01", "stage": "meeting"},
+        {"event_id": "e5", "id": "p01", "stage": "deal"},
+    ],
+}
+
+
 @pytest.fixture(autouse=True)
 def data_dir(tmp_path, monkeypatch):
     """Every test runs on a throwaway data folder, never the real data/."""
     (tmp_path / "profiles.json").write_text(json.dumps(PROFILES), encoding="utf-8")
     (tmp_path / "event_outcomes.json").write_text(json.dumps(EVENT_OUTCOMES), encoding="utf-8")
+    (tmp_path / "events.json").write_text(json.dumps(EVENTS), encoding="utf-8")
+    (tmp_path / "event_history.json").write_text(json.dumps(EVENT_HISTORY), encoding="utf-8")
     monkeypatch.setattr(rules, "DATA", tmp_path)
     return tmp_path
 

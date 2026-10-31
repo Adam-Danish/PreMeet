@@ -1,4 +1,4 @@
-# Checks the four calls exactly as the guide's API table describes them.
+# Checks the API calls exactly as the guide and Adam's events request describe them.
 from typing import get_args
 
 import pytest
@@ -112,11 +112,64 @@ def test_dashboard_updates_after_logging_a_pilot(client):
     assert dash["by_country"]["Indonesia"]["pilots"] == 1
 
 
-def test_only_the_guides_routes_exist():
+def test_get_events_returns_only_upcoming_and_ongoing(client):
+    res = client.get("/api/events")
+    assert res.status_code == 200
+    assert [e["id"] for e in res.json()] == ["e2", "e1"]
+
+
+def test_get_events_is_an_empty_list_with_no_events(client, data_dir):
+    (data_dir / "events.json").unlink()
+    res = client.get("/api/events")
+    assert res.status_code == 200
+    assert res.json() == []
+
+
+def test_get_event_returns_the_same_shape_as_the_list(client):
+    res = client.get("/api/events/e1")
+    assert res.status_code == 200
+    assert res.json() == client.get("/api/events").json()[1]
+    assert set(res.json()) == {"id", "title", "description", "organizer", "starts_at", "ends_at",
+                               "venue", "city", "country", "status", "attendee_count", "topics"}
+
+
+def test_get_event_can_open_a_completed_event(client):
+    assert client.get("/api/events/e3").json()["status"] == "completed"
+
+
+def test_get_event_is_404_when_missing(client):
+    assert client.get("/api/events/nope").status_code == 404
+
+
+def test_event_history_rows_match_adams_format(client):
+    res = client.get("/api/event-history")
+    assert res.status_code == 200
+    row = res.json()[0]
+    assert set(row) == {"event", "outcomes"}
+    assert row["event"]["status"] == "completed"
+    assert row["event"] == client.get(f"/api/events/{row['event']['id']}").json()
+    assert set(row["outcomes"]) == {"contacts", "meetings", "pilots", "deals"}
+
+
+def test_viewing_an_event_does_not_add_it_to_history(client):
+    before = client.get("/api/event-history").json()
+    assert client.get("/api/events/e5").status_code == 200
+    assert client.get("/api/event-history").json() == before
+    assert "e5" not in [row["event"]["id"] for row in before]
+
+
+def test_event_history_is_an_empty_list_with_no_file(client, data_dir):
+    (data_dir / "event_history.json").unlink()
+    assert client.get("/api/event-history").json() == []
+
+
+def test_only_the_agreed_routes_exist():
     routes = {(m, r.path) for r in backend_app.app.routes if r.path.startswith("/api")
               for m in r.methods}
     assert routes == {("POST", "/api/plan"), ("GET", "/api/outcomes"),
-                      ("POST", "/api/outcomes"), ("GET", "/api/dashboard")}
+                      ("POST", "/api/outcomes"), ("GET", "/api/dashboard"),
+                      ("GET", "/api/events"), ("GET", "/api/events/{event_id}"),
+                      ("GET", "/api/event-history")}
 
 
 def test_tests_never_touch_real_data(data_dir):

@@ -2,6 +2,7 @@
 import json
 import re
 import threading
+from datetime import datetime
 from pathlib import Path
 
 DATA = Path(__file__).resolve().parent.parent / "data"   # backend/ → main folder → data/
@@ -96,3 +97,34 @@ def dashboard():
     return {**funnel([r["stage"] for r in rows]),
             "by_country": breakdown(rows, profiles, "country"),
             "by_type": breakdown(rows, profiles, "type")}
+
+
+def load_events():
+    return _read("events.json", [])
+
+
+def _starts_at(event):
+    return datetime.fromisoformat(event["starts_at"])
+
+
+def current_events():
+    """Upcoming and ongoing events, soonest first."""
+    return sorted((e for e in load_events() if e["status"] != "completed"), key=_starts_at)
+
+
+def get_event(event_id):
+    return next((e for e in load_events() if e["id"] == event_id), None)
+
+
+def event_history():
+    """Completed events the demo founder attended, newest first, totalled per event.
+
+    Attendance comes from event_history.json, so viewing an event never adds it here.
+    """
+    history = _read("event_history.json", {})
+    events = {e["id"]: e for e in load_events()}
+    attended = [events[eid] for eid in history.get("attended", [])
+                if eid in events and events[eid]["status"] == "completed"]
+    rows = history.get("outcomes", [])
+    return [{"event": e, "outcomes": funnel([r["stage"] for r in rows if r["event_id"] == e["id"]])}
+            for e in sorted(attended, key=_starts_at, reverse=True)]
