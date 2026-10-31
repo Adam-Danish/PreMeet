@@ -3,6 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./events.module.css";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  Clock3,
+  History,
+  Info,
+  MapPin,
+  RefreshCw,
+  Search,
+  Users,
+  X,
+} from "lucide-react";
 
 // Change to false after the backend endpoints are ready.
 const DEMO_MODE = true;
@@ -107,8 +121,15 @@ function isEvent(value: unknown): value is EventItem {
   if (!isObject(value)) return false;
 
   const fields = [
-    "id", "title", "description", "organizer",
-    "starts_at", "ends_at", "venue", "city", "country",
+    "id",
+    "title",
+    "description",
+    "organizer",
+    "starts_at",
+    "ends_at",
+    "venue",
+    "city",
+    "country",
   ];
 
   return (
@@ -218,6 +239,10 @@ export default function EventsPage() {
   const [detailsError, setDetailsError] = useState("");
 
   const detailRequest = useRef(0);
+  const detailHeading = useRef<HTMLHeadingElement>(null);
+  const [previousView, setPreviousView] = useState<"events" | "history">(
+    "events",
+  );
 
   const loadCollections = useCallback(async () => {
     const [eventResult, historyResult] = await Promise.allSettled([
@@ -238,53 +263,57 @@ export default function EventsPage() {
       setHistoryError("");
     } else {
       setHistory([]);
-      setHistoryError("Couldn’t load event history. Please refresh to try again.");
+      setHistoryError(
+        "Couldn’t load event history. Please refresh to try again.",
+      );
     }
 
     setLoading(false);
   }, []);
 
   useEffect(() => {
-  let active = true;
+    let active = true;
 
-  Promise.allSettled([getEvents(), getHistory()]).then(
-    ([eventResult, historyResult]) => {
-      if (!active) return;
+    Promise.allSettled([getEvents(), getHistory()]).then(
+      ([eventResult, historyResult]) => {
+        if (!active) return;
 
-      if (eventResult.status === "fulfilled") {
-        setEvents(eventResult.value);
-        setEventsError("");
-      } else {
-        setEvents([]);
-        setEventsError("Couldn’t load events. Please refresh to try again.");
-      }
+        if (eventResult.status === "fulfilled") {
+          setEvents(eventResult.value);
+          setEventsError("");
+        } else {
+          setEvents([]);
+          setEventsError("Couldn’t load events. Please refresh to try again.");
+        }
 
-      if (historyResult.status === "fulfilled") {
-        setHistory(historyResult.value);
-        setHistoryError("");
-      } else {
-        setHistory([]);
-        setHistoryError(
-          "Couldn’t load event history. Please refresh to try again.",
-        );
-      }
+        if (historyResult.status === "fulfilled") {
+          setHistory(historyResult.value);
+          setHistoryError("");
+        } else {
+          setHistory([]);
+          setHistoryError(
+            "Couldn’t load event history. Please refresh to try again.",
+          );
+        }
 
-      setLoading(false);
-    },
-  );
+        setLoading(false);
+      },
+    );
 
-  return () => {
-    active = false;
-  };
-}, []);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function openDetails(event: EventItem) {
     const requestId = ++detailRequest.current;
+    if (view !== "details") setPreviousView(view);
 
     setSelected(event);
     setView("details");
     setDetailsError("");
     setDetailsLoading(true);
+    requestAnimationFrame(() => detailHeading.current?.focus());
 
     try {
       const details = await getEvent(event.id);
@@ -327,47 +356,51 @@ export default function EventsPage() {
   );
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-  <Link href="/" className={styles.brand}>
-    <span>P</span>
-    PreMeet
-  </Link>
+    <main className={`main ${styles.page}`} id="main-content" tabIndex={-1}>
+      <header className="page-heading">
+        <div>
+          <h1>Find your next opportunity.</h1>
+          <p>The right room can change what happens next. Find yours.</p>
+        </div>
+        <Link href="/" className="secondary-button">
+          My game plan
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+      </header>
 
-  <Link href="/" className={styles.backLink}>
-    ← Game plan
-  </Link>
-</header>
-
-      <section className={styles.hero}>
-        <p className={styles.eyebrow}>Your event journey</p>
-        <h1>Find your next opportunity.</h1>
-        <p>
-          Explore events, check the details and revisit the connections
-          that turned into results.
-        </p>
-
-        {DEMO_MODE && (
-          <span className={styles.demoBadge}>
-            Demo mode · Sample events and outcomes
-          </span>
-        )}
-      </section>
+      {DEMO_MODE && (
+        <div className={styles.demoNotice}>
+          <Info size={17} aria-hidden="true" />
+          <p>
+            <strong>You’re exploring a preview.</strong> These are sample events
+            and outcomes.
+          </p>
+          <span>Demo workspace</span>
+        </div>
+      )}
 
       <nav className={styles.tabs} aria-label="Event sections">
-        {([
-          ["events", "Events"],
-          ["details", "Event details"],
-          ["history", "History"],
-        ] as const).map(([id, label]) => (
+        {(
+          [
+            ["events", "Discover", CalendarDays],
+            ["details", "Event details", Info],
+            ["history", "History", History],
+          ] as const
+        ).map(([id, label, Icon]) => (
           <button
             key={id}
             type="button"
             aria-pressed={view === id}
             disabled={id === "details" && !selected}
+            title={
+              id === "details" && !selected
+                ? "Choose View details on an event first"
+                : undefined
+            }
             className={view === id ? styles.activeTab : styles.tab}
             onClick={() => setView(id)}
           >
+            <Icon size={16} aria-hidden="true" />
             {label}
           </button>
         ))}
@@ -377,44 +410,112 @@ export default function EventsPage() {
         <section aria-labelledby="events-heading">
           <div className={styles.sectionHeading}>
             <div>
-              <h2 id="events-heading">Upcoming and ongoing events</h2>
-              <p className={styles.muted}>Choose an event to explore its details.</p>
+              <h2 id="events-heading">On your radar</h2>
+              <p className={styles.muted}>
+                Upcoming and ongoing events for your next connection.
+              </p>
             </div>
             <button
               className={styles.button}
               disabled={loading}
               onClick={refresh}
             >
+              <RefreshCw
+                size={15}
+                className={loading ? "spin" : ""}
+                aria-hidden="true"
+              />
               {loading ? "Loading…" : "Refresh"}
             </button>
           </div>
 
-          <label className={styles.search}>
-            Search events
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by event, location or topic"
-            />
-          </label>
+          <div className={styles.searchToolbar}>
+            <label className={styles.search}>
+              <span className={styles.searchLabel}>Search events</span>
+              <Search size={18} aria-hidden="true" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by event, location or topic"
+              />
+            </label>
+            {query && (
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setSearch("")}
+              >
+                <X size={16} aria-hidden="true" />
+                Clear search
+              </button>
+            )}
+            <span className={styles.resultCount} role="status">
+              {loading
+                ? "Finding events…"
+                : `${visibleEvents.length} ${visibleEvents.length === 1 ? "event" : "events"}${query ? " found" : " to explore"}`}
+            </span>
+          </div>
 
           {eventsError && (
-            <p className={styles.error} role="alert">{eventsError}</p>
+            <p className={styles.error} role="alert">
+              {eventsError}
+            </p>
           )}
 
           {loading ? (
-            <p className={styles.empty} role="status">Loading events…</p>
+            <div className={styles.loadingGrid} role="status">
+              <span>Loading events…</span>
+              {[1, 2].map((n) => (
+                <div key={n} className="skeleton-card" aria-hidden="true">
+                  <div>
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <>
               <div className={styles.grid}>
                 {visibleEvents.map((event) => (
                   <article className={styles.card} key={event.id}>
-                    <span className={styles.status}>{event.status}</span>
+                    <div className={styles.eventCardHeader}>
+                      <div className={styles.dateTile}>
+                        <span>
+                          {new Intl.DateTimeFormat("en-MY", {
+                            month: "short",
+                            timeZone: "Asia/Kuala_Lumpur",
+                          }).format(new Date(event.starts_at))}
+                        </span>
+                        <strong>
+                          {new Intl.DateTimeFormat("en-MY", {
+                            day: "2-digit",
+                            timeZone: "Asia/Kuala_Lumpur",
+                          }).format(new Date(event.starts_at))}
+                        </strong>
+                      </div>
+                      <span
+                        className={styles.status}
+                        data-status={event.status}
+                      >
+                        {event.status === "ongoing"
+                          ? "Happening now"
+                          : event.status === "upcoming"
+                            ? "Upcoming"
+                            : "Completed"}
+                      </span>
+                    </div>
                     <h3>{event.title}</h3>
-                    <p className={styles.muted}>
+                    <p className={styles.eventMeta}>
+                      <Clock3 size={15} aria-hidden="true" />
                       {formatDate(event.starts_at)} MYT
                     </p>
-                    <p>{event.venue} · {event.city}</p>
+                    <p className={styles.eventMeta}>
+                      <MapPin size={15} aria-hidden="true" />
+                      {event.venue} · {event.city}
+                    </p>
 
                     <div className={styles.tags}>
                       {event.topics.map((topic, index) => (
@@ -425,14 +526,17 @@ export default function EventsPage() {
                     <p className={styles.description}>{event.description}</p>
 
                     <div className={styles.cardFooter}>
-                      <span className={styles.muted}>
+                      <span className={styles.attendees}>
+                        <Users size={16} aria-hidden="true" />
                         {event.attendee_count} attendees
                       </span>
                       <button
+                        id={`event-${event.id}`}
                         className={styles.primaryButton}
                         onClick={() => void openDetails(event)}
                       >
-                        View details →
+                        View details
+                        <ArrowRight size={16} aria-hidden="true" />
                       </button>
                     </div>
                   </article>
@@ -440,9 +544,28 @@ export default function EventsPage() {
               </div>
 
               {!visibleEvents.length && !eventsError && (
-                <p className={styles.empty}>
-                  {query ? "No events match your search." : "No upcoming events yet."}
-                </p>
+                <div className="empty-state">
+                  <Search size={28} aria-hidden="true" />
+                  <h3>
+                    {query
+                      ? "No events found."
+                      : "Your next event is still ahead."}
+                  </h3>
+                  <p>
+                    {query
+                      ? "Try another event name, location, or topic."
+                      : "Check back soon for new opportunities to connect."}
+                  </p>
+                  {query && (
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => setSearch("")}
+                    >
+                      Clear search
+                    </button>
+                  )}
+                </div>
               )}
             </>
           )}
@@ -451,22 +574,46 @@ export default function EventsPage() {
 
       {view === "details" && selected && (
         <section className={styles.details}>
+          <button
+            type="button"
+            className={`text-button ${styles.backButton}`}
+            onClick={() => {
+              setView(previousView);
+              requestAnimationFrame(() =>
+                document.getElementById(`event-${selected.id}`)?.focus(),
+              );
+            }}
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            {previousView === "history" ? "Back to history" : "Back to events"}
+          </button>
           <div className={styles.sectionHeading}>
             <div>
-              <span className={styles.status}>{selected.status}</span>
-              <h2>{selected.title}</h2>
+              <span className={styles.status} data-status={selected.status}>
+                {selected.status}
+              </span>
+              <h2 ref={detailHeading} tabIndex={-1}>
+                {selected.title}
+              </h2>
             </div>
             <button
               className={styles.button}
               disabled={detailsLoading}
               onClick={() => void openDetails(selected)}
             >
+              <RefreshCw
+                size={15}
+                className={detailsLoading ? "spin" : ""}
+                aria-hidden="true"
+              />
               {detailsLoading ? "Updating…" : "Refresh details"}
             </button>
           </div>
 
           {detailsError && (
-            <p className={styles.error} role="alert">{detailsError}</p>
+            <p className={styles.error} role="alert">
+              {detailsError}
+            </p>
           )}
 
           <p className={styles.detailDescription}>{selected.description}</p>
@@ -486,7 +633,9 @@ export default function EventsPage() {
             </div>
             <div>
               <dt>Location</dt>
-              <dd>{selected.city}, {selected.country}</dd>
+              <dd>
+                {selected.city}, {selected.country}
+              </dd>
             </div>
             <div>
               <dt>Organiser</dt>
@@ -502,6 +651,19 @@ export default function EventsPage() {
             {selected.topics.map((topic, index) => (
               <span key={`${topic}-${index}`}>{topic}</span>
             ))}
+          </div>
+          <div className={styles.detailCallout}>
+            <div>
+              <h3>Go in with a game plan.</h3>
+              <p>
+                Build your founder profile and find people aligned with your
+                goals.
+              </p>
+            </div>
+            <Link href="/" className="primary-button">
+              Build my game plan
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
         </section>
       )}
@@ -520,33 +682,47 @@ export default function EventsPage() {
               disabled={loading}
               onClick={refresh}
             >
+              <RefreshCw
+                size={15}
+                className={loading ? "spin" : ""}
+                aria-hidden="true"
+              />
               {loading ? "Loading…" : "Refresh"}
             </button>
           </div>
 
           {historyError && (
-            <p className={styles.error} role="alert">{historyError}</p>
+            <p className={styles.error} role="alert">
+              {historyError}
+            </p>
           )}
 
           {loading ? (
-            <p className={styles.empty} role="status">Loading history…</p>
+            <p className={styles.empty} role="status">
+              Loading history…
+            </p>
           ) : (
             <div className={styles.historyList}>
               {sortedHistory.map(({ event, outcomes }) => (
                 <article className={styles.card} key={event.id}>
                   <div className={styles.sectionHeading}>
                     <div>
-                      <span className={styles.status}>Completed</span>
+                      <span className={styles.status}>
+                        <Check size={12} aria-hidden="true" />
+                        Completed
+                      </span>
                       <h3>{event.title}</h3>
                       <p className={styles.muted}>
                         {formatDate(event.starts_at)} MYT · {event.city}
                       </p>
                     </div>
                     <button
+                      id={`event-${event.id}`}
                       className={styles.button}
                       onClick={() => void openDetails(event)}
                     >
-                      Event details →
+                      Event details
+                      <ArrowRight size={16} aria-hidden="true" />
                     </button>
                   </div>
 
@@ -562,9 +738,7 @@ export default function EventsPage() {
               ))}
 
               {!sortedHistory.length && !historyError && (
-                <p className={styles.empty}>
-                  No past attended events yet.
-                </p>
+                <p className={styles.empty}>No past attended events yet.</p>
               )}
             </div>
           )}

@@ -1,7 +1,24 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  CheckCheck,
+  ChevronRight,
+  CircleHelp,
+  Compass,
+  Handshake,
+  LoaderCircle,
+  MapPin,
+  MessageCircle,
+  RefreshCw,
+  Sparkles,
+  Target,
+  Users,
+} from "lucide-react";
 
 type Founder = {
   name: string;
@@ -73,15 +90,7 @@ function isStage(value: unknown): value is Stage {
 function isPlanItem(value: unknown): value is PlanItem {
   if (!isObject(value)) return false;
 
-  const textFields = [
-    "id",
-    "name",
-    "org",
-    "country",
-    "type",
-    "why",
-    "opener",
-  ];
+  const textFields = ["id", "name", "org", "country", "type", "why", "opener"];
 
   return (
     textFields.every((field) => typeof value[field] === "string") &&
@@ -99,11 +108,7 @@ function isDashboard(value: unknown): value is Dashboard {
 
   return ["contacts", "meetings", "pilots", "deals"].every((key) => {
     const count = value[key];
-    return (
-      typeof count === "number" &&
-      Number.isInteger(count) &&
-      count >= 0
-    );
+    return typeof count === "number" && Number.isInteger(count) && count >= 0;
   });
 }
 
@@ -117,9 +122,7 @@ async function api(
     cache: "no-store",
     headers: {
       Accept: "application/json",
-      ...(body !== undefined
-        ? { "Content-Type": "application/json" }
-        : {}),
+      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     signal: AbortSignal.timeout(90_000),
@@ -134,15 +137,24 @@ async function api(
 
 function Field({
   label,
+  error,
+  id,
   children,
 }: {
   label: string;
+  error?: string;
+  id: string;
   children: ReactNode;
 }) {
   return (
-    <label className="field">
+    <label className="field" htmlFor={id}>
       <span>{label}</span>
       {children}
+      {error && (
+        <span id={`${id}-error`} className="field-error">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
@@ -166,6 +178,9 @@ export default function Home() {
   const [outcomesError, setOutcomesError] = useState("");
   const [dashboardError, setDashboardError] = useState("");
   const [notice, setNotice] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const errorSummary = useRef<HTMLDivElement>(null);
+  const profileHeading = useRef<HTMLHeadingElement>(null);
 
   const metrics = dashboard
     ? [
@@ -176,10 +191,7 @@ export default function Home() {
       ]
     : [];
 
-  function toggleSelection(
-    field: "target_countries" | "wants",
-    value: string,
-  ) {
+  function toggleSelection(field: "target_countries" | "wants", value: string) {
     setFounder((current) => ({
       ...current,
       [field]: current[field].includes(value)
@@ -201,15 +213,16 @@ export default function Home() {
       needs: founder.needs.trim(),
     };
 
-    if (
-      !submitted.name ||
-      !submitted.needs ||
-      !submitted.target_countries.length ||
-      !submitted.wants.length
-    ) {
-      setPlanError(
-        "Enter your name and needs, then select countries and people to meet.",
-      );
+    const errors: Record<string, string> = {};
+    if (!submitted.name) errors.name = "Enter your name.";
+    if (!submitted.needs) errors.needs = "Tell us what you are looking for.";
+    if (!submitted.target_countries.length)
+      errors.countries = "Select at least one country.";
+    if (!submitted.wants.length)
+      errors.wants = "Select at least one type of person.";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      requestAnimationFrame(() => errorSummary.current?.focus());
       return;
     }
 
@@ -232,11 +245,7 @@ export default function Home() {
         throw new Error("Duplicate attendees returned.");
       }
 
-      setPlan(
-        [...entries]
-          .sort((a, b) => a.rank - b.rank)
-          .slice(0, 5),
-      );
+      setPlan([...entries].sort((a, b) => a.rank - b.rank).slice(0, 5));
       setPlanOwner(submitted.name);
       setNotice("Your game plan is ready.");
     } catch {
@@ -254,10 +263,7 @@ export default function Home() {
     try {
       const data = await api("/api/outcomes");
 
-      if (
-        !isObject(data) ||
-        !Object.values(data).every(isStage)
-      ) {
+      if (!isObject(data) || !Object.values(data).every(isStage)) {
         throw new Error("Invalid outcomes response.");
       }
 
@@ -325,400 +331,548 @@ export default function Home() {
   }
 
   return (
-    <div className="app-shell">
-      <header className="site-header">
-  <div className="header-inner">
-    <Link className="brand" href="/">
-      <span className="brand-mark">P</span>
-      <span>PreMeet</span>
-    </Link>
-
-    <Link href="/events" className="secondary-button">
-      Explore events →
-    </Link>
-  </div>
-</header>
-
-      <main className="main">
-        <section className="hero">
-          <p className="eyebrow">Event Game Plan</p>
+    <main className="main" id="main-content" tabIndex={-1}>
+      <header className="page-heading">
+        <div>
           <h1>
-            Arrive with a plan.
-            <br />
-            Leave with proof.
+            {view === "plan"
+              ? "Your next great connection starts here."
+              : view === "log"
+                ? "Keep the conversation moving."
+                : "Connections, with an impact."}
           </h1>
-          <p className="hero-description">
-            Find the right people before your event, then track the
-            conversations that become meetings, pilots and deals.
+          <p>
+            {view === "plan"
+              ? "A little intention turns an introduction into an opportunity."
+              : view === "log"
+                ? "Turn the people you meet into progress you can track."
+                : "See what your event is making possible."}
           </p>
-          <span className="preview-label">
-            Before the event → After the event → Measurable outcomes
-          </span>
-        </section>
+        </div>
+        <Link href="/events" className="secondary-button">
+          Explore events
+          <ArrowUpRight size={16} aria-hidden="true" />
+        </Link>
+      </header>
 
-        <nav className="view-nav" aria-label="App sections">
-          {([
-            ["plan", "01", "Game plan"],
-            ["log", "02", "After the event"],
-            ["dashboard", "03", "Event dashboard"],
-          ] as const).map(([id, number, label]) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={view === id}
-              disabled={savingId !== null || loadingOutcomes}
-              className={
-                view === id ? "view-button active" : "view-button"
-              }
-              onClick={() => openView(id)}
-            >
-              <span>{number}</span>
-              {label}
-            </button>
-          ))}
-        </nav>
+      <nav className="view-nav" aria-label="Game plan sections">
+        {(
+          [
+            ["plan", "Game plan", Compass],
+            ["log", "Outcome log", MessageCircle],
+            ["dashboard", "Dashboard", Target],
+          ] as const
+        ).map(([id, label, Icon]) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={view === id}
+            disabled={savingId !== null || loadingOutcomes}
+            className={view === id ? "view-button active" : "view-button"}
+            onClick={() => openView(id)}
+          >
+            <Icon size={17} aria-hidden="true" />
+            {label}
+          </button>
+        ))}
+      </nav>
 
-        {notice && (
-          <p className="notice" role="status">{notice}</p>
-        )}
+      {notice && (
+        <p className="notice" role="status">
+          <CheckCheck size={18} aria-hidden="true" />
+          {notice}
+        </p>
+      )}
 
-        {view === "plan" && (
-          <>
-            {planError && (
-              <p className="error-message" role="alert">{planError}</p>
-            )}
-
-            <div className="plan-layout">
-              <aside className="panel profile-panel">
-                <p className="eyebrow">Start here</p>
-                <h2>Your founder profile</h2>
-                <p className="muted">
-                  Tell us what you build and what you need next.
-                </p>
-
-                <form
-                  onSubmit={makePlan}
-                  className="profile-form"
-                  aria-busy={loadingPlan}
-                >
-                  <Field label="Your name">
-                    <input
-                      required
-                      maxLength={80}
-                      autoComplete="name"
-                      value={founder.name}
-                      onChange={(event) =>
-                        setFounder({
-                          ...founder,
-                          name: event.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-
-                  <Field label="Sector">
-                    <select
-                      value={founder.sector}
-                      onChange={(event) =>
-                        setFounder({
-                          ...founder,
-                          sector: event.target.value,
-                        })
-                      }
-                    >
-                      {SECTORS.map((sector) => (
-                        <option key={sector} value={sector}>
-                          {sector}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-
-                  <fieldset>
-                    <legend>Target countries</legend>
-                    <div className="choices">
-                      {COUNTRIES.map((country) => (
-                        <label className="choice" key={country}>
-                          <input
-                            type="checkbox"
-                            checked={founder.target_countries.includes(country)}
-                            onChange={() =>
-                              toggleSelection("target_countries", country)
-                            }
-                          />
-                          {country}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-
-                  <fieldset>
-                    <legend>Who do you want to meet?</legend>
-                    <div className="choices">
-                      {TYPES.map((type) => (
-                        <label className="choice" key={type}>
-                          <input
-                            type="checkbox"
-                            checked={founder.wants.includes(type)}
-                            onChange={() =>
-                              toggleSelection("wants", type)
-                            }
-                          />
-                          {type}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-
-                  <Field label="What are you building, and what do you need?">
-                    <textarea
-                      required
-                      rows={4}
-                      maxLength={1000}
-                      value={founder.needs}
-                      onChange={(event) =>
-                        setFounder({
-                          ...founder,
-                          needs: event.target.value,
-                        })
-                      }
-                    />
-                  </Field>
-
-                  <button
-                    type="submit"
-                    className="primary-button"
-                    disabled={loadingPlan}
-                  >
-                    {loadingPlan
-                      ? "Making your game plan…"
-                      : "Make my game plan →"}
-                  </button>
-                </form>
-              </aside>
-
-              <section aria-labelledby="plan-heading">
-                <div className="section-heading">
-                  <div>
-                    <p className="eyebrow">Before the event</p>
-                    <h2 id="plan-heading">
-                      {plan.length
-                        ? `${planOwner}’s game plan`
-                        : "Your next five conversations"}
-                    </h2>
-                  </div>
-                  <span className="badge">{plan.length} people</span>
-                </div>
-
-                {!plan.length ? (
-                  <div className="empty-state">
-                    <span className="empty-number">5</span>
-                    <h3>Fewer random introductions.</h3>
-                    <p>
-                      Complete your profile to see who to meet,
-                      why they matter and how to start the conversation.
-                    </p>
-                    {loadingPlan && (
-                      <p role="status">Finding your recommendations…</p>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <p className="section-note">
-                      A clear reason to connect, and an opener to get started.
-                    </p>
-
-                    <div className="cards">
-                      {plan.map((item) => (
-                        <article className="person-card" key={item.id}>
-                          <div className="person-heading">
-                            <span className="rank">{item.rank}</span>
-                            <div>
-                              <h3>{item.name}</h3>
-                              <p className="muted">{item.org}</p>
-                            </div>
-                          </div>
-
-                          <div className="tags">
-                            <span>{item.country}</span>
-                            <span>{item.type}</span>
-                            {item.sector && <span>{item.sector}</span>}
-                          </div>
-
-                          <p className="card-label">Why meet</p>
-                          <p className="reason">{item.why}</p>
-
-                          <div className="opener">
-                            <p className="card-label">Start with this</p>
-                            <p>“{item.opener}”</p>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </section>
+      {view === "plan" && (
+        <div className="plan-layout">
+          <aside className="panel profile-panel">
+            <div className="profile-title">
+              <h2 ref={profileHeading} tabIndex={-1}>
+                Your founder profile
+              </h2>
+              <span className="profile-indicator">
+                <span className="status-dot" />
+                Personalize
+              </span>
             </div>
-          </>
-        )}
+            <p className="muted">The right people start with knowing you.</p>
+            <form
+              onSubmit={makePlan}
+              noValidate
+              className="profile-form"
+              aria-busy={loadingPlan}
+            >
+              {Object.keys(fieldErrors).length > 0 && (
+                <div
+                  className="error-message"
+                  role="alert"
+                  tabIndex={-1}
+                  ref={errorSummary}
+                >
+                  <strong>Check your profile</strong>
+                  <ul>
+                    {Object.entries(fieldErrors).map(([id, error]) => (
+                      <li key={id}>
+                        <a href={`#${id}`}>{error}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="form-row">
+                <Field label="Your name" id="name" error={fieldErrors.name}>
+                  <input
+                    id="name"
+                    required
+                    maxLength={80}
+                    autoComplete="name"
+                    value={founder.name}
+                    aria-invalid={!!fieldErrors.name}
+                    aria-describedby={
+                      fieldErrors.name ? "name-error" : undefined
+                    }
+                    onChange={(event) =>
+                      setFounder({ ...founder, name: event.target.value })
+                    }
+                  />
+                </Field>
+                <Field label="Your sector" id="sector">
+                  <select
+                    id="sector"
+                    value={founder.sector}
+                    onChange={(event) =>
+                      setFounder({ ...founder, sector: event.target.value })
+                    }
+                  >
+                    {SECTORS.map((sector) => (
+                      <option key={sector} value={sector}>
+                        {sector.charAt(0).toUpperCase() + sector.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <fieldset
+                id="countries"
+                tabIndex={-1}
+                aria-describedby={
+                  fieldErrors.countries ? "countries-error" : undefined
+                }
+              >
+                <legend>Where do you want to grow?</legend>
+                <p className="field-hint">Choose your target markets.</p>
+                <div className="choices">
+                  {COUNTRIES.map((country) => (
+                    <label className="choice" key={country}>
+                      <input
+                        type="checkbox"
+                        checked={founder.target_countries.includes(country)}
+                        onChange={() =>
+                          toggleSelection("target_countries", country)
+                        }
+                      />
+                      <Check
+                        size={14}
+                        className="choice-check"
+                        aria-hidden="true"
+                      />
+                      {country}
+                    </label>
+                  ))}
+                </div>
+                {fieldErrors.countries && (
+                  <p className="field-error" id="countries-error">
+                    {fieldErrors.countries}
+                  </p>
+                )}
+              </fieldset>
+              <fieldset
+                id="wants"
+                tabIndex={-1}
+                aria-describedby={fieldErrors.wants ? "wants-error" : undefined}
+              >
+                <legend>Who would you like to meet?</legend>
+                <div className="choices">
+                  {TYPES.map((type) => (
+                    <label className="choice" key={type}>
+                      <input
+                        type="checkbox"
+                        checked={founder.wants.includes(type)}
+                        onChange={() => toggleSelection("wants", type)}
+                      />
+                      <Check
+                        size={14}
+                        className="choice-check"
+                        aria-hidden="true"
+                      />
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </label>
+                  ))}
+                </div>
+                {fieldErrors.wants && (
+                  <p className="field-error" id="wants-error">
+                    {fieldErrors.wants}
+                  </p>
+                )}
+              </fieldset>
+              <Field
+                label="What are you looking for?"
+                id="needs"
+                error={fieldErrors.needs}
+              >
+                <textarea
+                  id="needs"
+                  required
+                  rows={3}
+                  maxLength={1000}
+                  value={founder.needs}
+                  placeholder="A pilot partner, seed funding, a new market…"
+                  aria-invalid={!!fieldErrors.needs}
+                  aria-describedby={
+                    fieldErrors.needs ? "needs-error needs-hint" : "needs-hint"
+                  }
+                  onChange={(event) =>
+                    setFounder({ ...founder, needs: event.target.value })
+                  }
+                />
+              </Field>
+              <p className="field-hint" id="needs-hint">
+                Be specific. A clear ask makes a better match.
+              </p>
+              {planError && (
+                <p className="error-message" role="alert">
+                  {planError}
+                </p>
+              )}
+              <button
+                type="submit"
+                className="primary-button generate-button"
+                disabled={loadingPlan}
+              >
+                {loadingPlan ? (
+                  <LoaderCircle className="spin" size={18} aria-hidden="true" />
+                ) : (
+                  <Sparkles size={18} aria-hidden="true" />
+                )}
+                {loadingPlan
+                  ? "Finding your people…"
+                  : plan.length
+                    ? "Regenerate my game plan"
+                    : "Build my game plan"}
+                {!loadingPlan && <ArrowRight size={17} aria-hidden="true" />}
+              </button>
+              <p className="form-footnote">
+                Five thoughtful matches. A reason to connect.
+              </p>
+            </form>
+          </aside>
 
-        {view === "log" && (
-          <section className="panel">
+          <section
+            className="recommendations"
+            aria-labelledby="plan-heading"
+            aria-busy={loadingPlan}
+          >
             <div className="section-heading">
               <div>
-                <p className="eyebrow">After the event</p>
-                <h2>What came of the conversation?</h2>
+                <h2 id="plan-heading">
+                  {plan.length
+                    ? `${planOwner}’s game plan`
+                    : "Your conversation shortlist"}
+                </h2>
+                <p className="muted">Less small talk. More common ground.</p>
               </div>
-              <button
-                type="button"
-                className="secondary-button"
-                disabled={loadingOutcomes || savingId !== null}
-                onClick={() => void loadOutcomes()}
-              >
-                {loadingOutcomes ? "Loading…" : "Refresh outcomes"}
-              </button>
+              <span className="count-label">
+                <Users size={15} aria-hidden="true" />
+                {plan.length} people
+              </span>
             </div>
-
-            <p className="muted">
-              Choose the furthest stage reached. Each selection saves
-              immediately to the shared demo event log.
-            </p>
-
-            {outcomesError && (
-              <p className="error-message api-message" role="alert">
-                {outcomesError}
-              </p>
-            )}
-
-            {loadingOutcomes && (
-              <p className="section-note api-message" role="status">
-                Loading saved outcomes…
-              </p>
-            )}
-
-            {!plan.length ? (
-              <div className="empty-state compact">
-                <h3>Your recommended contacts will appear here.</h3>
-                <p>Generate a game plan first.</p>
-                <button
-                  type="button"
-                  className="primary-button"
-                  disabled={loadingOutcomes}
-                  onClick={() => openView("plan")}
-                >
-                  Make a game plan →
-                </button>
-              </div>
-            ) : (
-              <div className="outcome-list">
-                {plan.map((item) => (
-                  <div
-                    className="outcome-row"
-                    key={item.id}
-                    aria-busy={savingId === item.id}
-                  >
-                    <div className="person-heading">
-                      <span className="rank">{item.rank}</span>
-                      <div>
-                        <h3>{item.name}</h3>
-                        <p className="muted">
-                          {item.org} · {item.country}
-                        </p>
-                        <p className="muted">
-                          {savingId === item.id
-                            ? "Saving…"
-                            : !outcomesReady
-                              ? "Waiting for saved outcomes"
-                              : outcomes[item.id]
-                                ? `Saved: ${STAGE_LABELS[outcomes[item.id]]}`
-                                : "Not logged"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className="outcome-actions"
-                      role="group"
-                      aria-label={`Outcome for ${item.name}`}
-                    >
-                      {STAGES.map((stage) => (
-                        <button
-                          key={stage}
-                          type="button"
-                          className="outcome-button"
-                          aria-pressed={outcomes[item.id] === stage}
-                          disabled={
-                            !outcomesReady ||
-                            loadingOutcomes ||
-                            savingId !== null
-                          }
-                          onClick={() =>
-                            void saveOutcome(item.id, stage)
-                          }
-                        >
-                          {STAGE_LABELS[stage]}
-                        </button>
-                      ))}
+            {loadingPlan ? (
+              <div className="loading-recommendations" role="status">
+                <p>
+                  <LoaderCircle size={18} className="spin" aria-hidden="true" />
+                  Matching your goals with the right people…
+                </p>
+                {[1, 2, 3].map((n) => (
+                  <div className="skeleton-card" key={n} aria-hidden="true">
+                    <span className="skeleton-avatar" />
+                    <div>
+                      <span />
+                      <span />
+                      <span />
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </section>
-        )}
-
-        {view === "dashboard" && (
-          <section>
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">For Startup ASEAN</p>
-                <h2>Event outcomes, beyond attendance.</h2>
+            ) : !plan.length ? (
+              <div className="shortlist-empty">
+                <div className="connection-visual" aria-hidden="true">
+                  <span className="connection-person">YOU</span>
+                  <span className="connection-line" />
+                  <span className="connection-target">
+                    <Users size={28} />
+                  </span>
+                </div>
+                <h3>Meet with a little more purpose.</h3>
+                <p>
+                  Your next five conversations, chosen around what you’re
+                  building and where you want to go.
+                </p>
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => {
+                    profileHeading.current?.scrollIntoView({ block: "center" });
+                    document
+                      .getElementById("name")
+                      ?.focus({ preventScroll: true });
+                  }}
+                >
+                  Start with your profile
+                  <ArrowRight size={16} aria-hidden="true" />
+                </button>
+                <div className="shortlist-benefits">
+                  <span>
+                    <Check size={16} aria-hidden="true" />
+                    People who fit your goals
+                  </span>
+                  <span>
+                    <Check size={16} aria-hidden="true" />A real reason to
+                    connect
+                  </span>
+                  <span>
+                    <Check size={16} aria-hidden="true" />
+                    An opener that feels natural
+                  </span>
+                </div>
               </div>
+            ) : (
+              <div className="cards">
+                {plan.map((item) => (
+                  <article className="person-card" key={item.id}>
+                    <div className="person-card-top">
+                      <div className="person-heading">
+                        <span className="person-avatar" aria-hidden="true">
+                          {item.name
+                            .split(" ")
+                            .map((part) => part[0])
+                            .slice(0, 2)
+                            .join("")}
+                        </span>
+                        <div>
+                          <h3>{item.name}</h3>
+                          <p className="muted">{item.org}</p>
+                        </div>
+                      </div>
+                      <span className="match-rank">Match {item.rank}</span>
+                    </div>
+                    <div className="tags">
+                      <span>
+                        <MapPin size={13} aria-hidden="true" />
+                        {item.country}
+                      </span>
+                      <span>{item.type}</span>
+                      {item.sector && <span>{item.sector}</span>}
+                    </div>
+                    <p className="card-label">Why you should connect</p>
+                    <p className="reason">{item.why}</p>
+                    <div className="opener">
+                      <MessageCircle size={16} aria-hidden="true" />
+                      <div>
+                        <p className="card-label">Break the ice</p>
+                        <p>“{item.opener}”</p>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            <div className="context-note">
+              <CircleHelp size={17} aria-hidden="true" />
+              <p>
+                A game plan is a starting point. The best part of the
+                conversation is what you bring to it.
+              </p>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {view === "log" && (
+        <section className="panel outcome-panel">
+          <div className="section-heading">
+            <div>
+              <h2>From hello to what’s next</h2>
+              <p className="muted">
+                Choose the furthest stage reached for each conversation.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={loadingOutcomes || savingId !== null}
+              onClick={() => void loadOutcomes()}
+            >
+              <RefreshCw
+                size={16}
+                className={loadingOutcomes ? "spin" : ""}
+                aria-hidden="true"
+              />
+              {loadingOutcomes ? "Loading…" : "Refresh outcomes"}
+            </button>
+          </div>
+          <p className="shared-log-note">
+            <CircleHelp size={16} aria-hidden="true" />
+            Changes save immediately to the shared demo event log.
+          </p>
+          {outcomesError && (
+            <p className="error-message api-message" role="alert">
+              {outcomesError}
+            </p>
+          )}
+          {loadingOutcomes && (
+            <p className="api-message loading-message" role="status">
+              <LoaderCircle size={18} className="spin" aria-hidden="true" />
+              Loading saved outcomes…
+            </p>
+          )}
+          {!plan.length ? (
+            <div className="empty-state compact">
+              <MessageCircle size={32} aria-hidden="true" />
+              <h3>Every outcome starts with a conversation.</h3>
+              <p>
+                Build a game plan first. Your recommended contacts will appear
+                here, ready to follow up.
+              </p>
               <button
                 type="button"
-                className="secondary-button"
-                disabled={loadingDashboard}
-                onClick={() => void loadDashboard()}
+                className="primary-button"
+                disabled={loadingOutcomes}
+                onClick={() => openView("plan")}
               >
-                {loadingDashboard ? "Updating…" : "Refresh dashboard"}
+                Build a game plan
+                <ArrowRight size={16} aria-hidden="true" />
               </button>
             </div>
-
-            <p className="section-note">
-              Event totals include saved contact outcomes and the
-              event records supplied by your team.
-            </p>
-
-            {dashboardError && (
-              <p className="error-message" role="alert">
-                {dashboardError}
-              </p>
-            )}
-
-            {loadingDashboard ? (
-              <div className="panel" role="status">
-                Loading event results…
-              </div>
-            ) : dashboard ? (
-              <>
-                <div className="metrics">
-                  {metrics.map((metric) => (
-                    <article className="metric-card" key={metric.label}>
-                      <p>{metric.label}</p>
-                      <strong>{metric.value}</strong>
-                    </article>
-                  ))}
+          ) : (
+            <div className="outcome-list">
+              {plan.map((item) => (
+                <div
+                  className="outcome-row"
+                  key={item.id}
+                  aria-busy={savingId === item.id}
+                >
+                  <div className="person-heading">
+                    <span className="person-avatar" aria-hidden="true">
+                      {item.name
+                        .split(" ")
+                        .map((p) => p[0])
+                        .slice(0, 2)
+                        .join("")}
+                    </span>
+                    <div>
+                      <h3>{item.name}</h3>
+                      <p className="muted">
+                        {item.org} · {item.country}
+                      </p>
+                      <p className="saved-state">
+                        {savingId === item.id
+                          ? "Saving…"
+                          : !outcomesReady
+                            ? "Waiting for saved outcomes"
+                            : outcomes[item.id]
+                              ? `Saved: ${STAGE_LABELS[outcomes[item.id]]}`
+                              : "Not logged yet"}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className="outcome-actions"
+                    role="group"
+                    aria-label={`Outcome for ${item.name}`}
+                  >
+                    {STAGES.map((stage) => (
+                      <button
+                        key={stage}
+                        type="button"
+                        className="outcome-button"
+                        aria-pressed={outcomes[item.id] === stage}
+                        disabled={
+                          !outcomesReady || loadingOutcomes || savingId !== null
+                        }
+                        onClick={() => void saveOutcome(item.id, stage)}
+                      >
+                        {STAGE_LABELS[stage]}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
+      {view === "dashboard" && (
+        <section>
+          <div className="section-heading">
+            <div>
+              <h2>Your event, beyond attendance</h2>
+              <p className="muted">
+                A shared view of meetings, pilots, and deals for Startup ASEAN.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={loadingDashboard}
+              onClick={() => void loadDashboard()}
+            >
+              <RefreshCw
+                size={16}
+                className={loadingDashboard ? "spin" : ""}
+                aria-hidden="true"
+              />
+              {loadingDashboard ? "Updating…" : "Refresh dashboard"}
+            </button>
+          </div>
+          {dashboardError && (
+            <p className="error-message api-message" role="alert">
+              {dashboardError}
+            </p>
+          )}
+          {loadingDashboard ? (
+            <div className="panel dashboard-loading" role="status">
+              <LoaderCircle size={22} className="spin" aria-hidden="true" />
+              Loading event results…
+            </div>
+          ) : dashboard ? (
+            <>
+              <div className="metrics">
+                {metrics.map((metric) => (
+                  <article className="metric-card" key={metric.label}>
+                    <p>{metric.label}</p>
+                    <strong>{metric.value.toLocaleString()}</strong>
+                    <span>
+                      {metric.label === "Contacts"
+                        ? "Conversations started"
+                        : metric.label === "Meetings"
+                          ? "Taking the next step"
+                          : metric.label === "Pilots"
+                            ? "Putting ideas to work"
+                            : "Making it official"}
+                    </span>
+                  </article>
+                ))}
+              </div>
+              <div className="dashboard-layout">
                 <figure className="panel funnel-chart">
                   <figcaption>
-                    <h3>From first contact to business outcome</h3>
+                    <h3>The connection journey</h3>
                     <p className="muted">
-                      These are cumulative stages: a deal also counts
-                      as a pilot and a meeting.
+                      From first contact to a business outcome.
                     </p>
                   </figcaption>
-
                   {metrics.map((metric) => (
                     <div className="chart-row" key={metric.label}>
                       <span>{metric.label}</span>
@@ -726,42 +880,61 @@ export default function Home() {
                         <div
                           className="chart-fill"
                           style={{
-                            width: `${
-                              Math.min(
-                                1,
-                                metric.value /
-                                  Math.max(dashboard.contacts, 1),
-                              ) * 100
-                            }%`,
+                            width: `${Math.min(1, metric.value / Math.max(dashboard.contacts, 1)) * 100}%`,
                           }}
                         />
                       </div>
-                      <strong>{metric.value}</strong>
+                      <strong>{metric.value.toLocaleString()}</strong>
                     </div>
                   ))}
-
                   {dashboard.contacts === 0 && (
                     <p className="section-note">
-                      No contact outcomes have been recorded yet.
-                      Log an outcome after your first conversation.
+                      No contacts recorded yet. Log an outcome after your first
+                      conversation.
                     </p>
                   )}
                 </figure>
-              </>
-            ) : (
-              <div className="empty-state">
-                <h3>Event results are unavailable.</h3>
-                <p>Use Refresh dashboard to try again.</p>
+                <aside className="panel dashboard-context">
+                  <Handshake size={28} aria-hidden="true" />
+                  <h3>Progress is a conversation away.</h3>
+                  <p>
+                    These stages are cumulative. A deal also counts as a pilot
+                    and a meeting.
+                  </p>
+                  <p>
+                    Totals include saved contact outcomes and event records
+                    supplied by your team.
+                  </p>
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => openView("log")}
+                  >
+                    Update your outcomes
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                </aside>
               </div>
-            )}
-          </section>
-        )}
-      </main>
-
-      <footer className="site-footer">
-        PreMeet / Event Game Plan
-        <span>Know who to meet. Track what happens next.</span>
-      </footer>
-    </div>
+            </>
+          ) : (
+            <div className="empty-state">
+              <Target size={32} aria-hidden="true" />
+              <h3>Results aren’t available yet.</h3>
+              <p>
+                Refresh the dashboard to try loading your event results again.
+              </p>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={() => void loadDashboard()}
+              >
+                Try again
+                <RefreshCw size={16} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+    </main>
   );
 }
