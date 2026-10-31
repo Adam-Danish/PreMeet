@@ -3,3 +3,4 @@ uvicorn[standard]
 google-genai
 python-dotenv
 ollama
+psycopg[binary]>=3.2,<4

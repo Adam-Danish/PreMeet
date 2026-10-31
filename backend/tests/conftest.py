@@ -87,6 +87,7 @@ def data_dir(tmp_path, monkeypatch):
     (tmp_path / "profiles.json").write_text(json.dumps(PROFILES), encoding="utf-8")
     (tmp_path / "event_outcomes.json").write_text(json.dumps(EVENT_OUTCOMES), encoding="utf-8")
     monkeypatch.setattr(rules, "DATA", tmp_path)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
     return tmp_path
 
 

@@ -2,13 +2,20 @@
 # Run from the repo's main folder: uvicorn backend.app:app --reload --port 8000
 from typing import Literal
 
-from fastapi import FastAPI
+import psycopg
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ai.ai import make_game_plan, sample_game_plan
 from backend import rules
 
 app = FastAPI()
+
+
+@app.exception_handler(psycopg.Error)
+def database_error(request, error):
+    return JSONResponse(status_code=503, content={"detail": "Database temporarily unavailable. Please try again."})
 
 
 class Founder(BaseModel):
@@ -40,7 +47,10 @@ def get_outcomes():
 
 @app.post("/api/outcomes")
 def save_outcome(o: Outcome):
-    rules.set_outcome(o.id, o.stage)
+    try:
+        rules.set_outcome(o.id, o.stage)
+    except psycopg.errors.ForeignKeyViolation:
+        raise HTTPException(status_code=404, detail="Profile not found") from None
     return {"ok": True}
 
 

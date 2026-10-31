@@ -4,6 +4,8 @@ import re
 import threading
 from pathlib import Path
 
+from backend import database
+
 DATA = Path(__file__).resolve().parent.parent / "data"   # backend/ → main folder → data/
 STAGES = ["none", "meeting", "pilot", "deal"]
 STOP_WORDS = {"a", "an", "and", "for", "from", "in", "into", "of", "on", "or", "our",
@@ -19,18 +21,39 @@ def _read(name, default):
 
 
 def load_profiles():
+    if database.configured():
+        with database.connect() as conn:
+            return conn.execute(
+                "SELECT id, name, org, country, type, sector, looking_for FROM profiles ORDER BY id"
+            ).fetchall()
     return _read("profiles.json", [])
 
 
 def load_event_outcomes():
+    if database.configured():
+        with database.connect() as conn:
+            return conn.execute("SELECT founder, id, stage FROM event_outcomes ORDER BY founder, id").fetchall()
     return _read("event_outcomes.json", [])
 
 
 def load_outcomes():
+    if database.configured():
+        with database.connect() as conn:
+            return {row["id"]: row["stage"] for row in conn.execute("SELECT id, stage FROM outcomes")}
     return _read("outcomes.json", {})
 
 
 def save_outcomes(outcomes):
+    if database.configured():
+        with database.connect() as conn:
+            conn.execute("DELETE FROM outcomes WHERE NOT (id = ANY(%s))", (list(outcomes),))
+            with conn.cursor() as cursor:
+                cursor.executemany(
+                    """INSERT INTO outcomes (id, stage) VALUES (%s, %s)
+                       ON CONFLICT (id) DO UPDATE SET stage = EXCLUDED.stage""",
+                    list(outcomes.items()),
+                )
+        return
     # Write to a temp file first, so a crash mid-save can't leave broken JSON behind
     tmp = DATA / "outcomes.json.tmp"
     tmp.write_text(json.dumps(outcomes, indent=2), encoding="utf-8")
@@ -38,6 +61,14 @@ def save_outcomes(outcomes):
 
 
 def set_outcome(pid, stage):
+    if database.configured():
+        with database.connect() as conn:
+            conn.execute(
+                """INSERT INTO outcomes (id, stage) VALUES (%s, %s)
+                   ON CONFLICT (id) DO UPDATE SET stage = EXCLUDED.stage""",
+                (pid, stage),
+            )
+        return
     # Locked so two quick taps can't overwrite each other
     with _save_lock:
         outcomes = load_outcomes()
