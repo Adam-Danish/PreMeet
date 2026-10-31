@@ -4,3 +4,6 @@ __pycache__/
 .DS_Store
 data/plan_cache.json
 data/outcomes.json
+
+# Local Vercel build and development files
+.vercel/

@@ -1,4 +1,3 @@
-export const runtime = "nodejs";
 export const maxDuration = 180;
 
 // Connection-specific headers must not cross the proxy boundary.
